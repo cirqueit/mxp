@@ -1,0 +1,263 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title>VectorBlox MXP Preview: Supported Xilinx Development Boards</title>
+  <style type="text/css">code{white-space: pre;}</style>
+<link type="text/css" rel="stylesheet" href="css/bootstrap.css"/>
+<link type="text/css" rel="stylesheet" href="css/jquery.ui.all.css"/>
+<link type="text/css" rel="stylesheet" href="css/jquery.tocify.css"/>
+<style>
+body {
+    padding-top: 20px;
+}
+p {
+    font-size: 16px;
+}
+.headerDoc {
+    color: #005580;
+}
+
+@media (max-width: 767px) {
+    #toc {
+        position: relative;
+        width: 100%;
+        margin: 0px 0px 20px 0px;
+    }
+}
+</style>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-48667957-1', 'vectorblox.github.io');
+  ga('send', 'pageview');
+
+</script>
+</head>
+<body>
+<div class="container-fluid">
+<div class="row-fluid">
+<div class="span3">
+<div id="toc"></div>
+</div>
+<div class="span9">
+<div id="header">
+<h1 class="title">VectorBlox MXP Preview: Supported Xilinx Development Boards</h1>
+</div>
+<p>Pre-built FPGA bitstreams of VectorBlox MXP systems are available for the development boards listed here.</p>
+<p><strong>The bitstreams are for evaluation purposes only.</strong> VectorBlox licenses the MXP processor as a soft-core for use in FPGA designs.</p>
+<p>Please contact us at <script type="text/javascript">
+<!--
+h='&#118;&#x65;&#x63;&#116;&#x6f;&#114;&#98;&#108;&#x6f;&#120;&#46;&#x63;&#x6f;&#x6d;';a='&#64;';n='&#x69;&#110;&#102;&#x6f;';e=n+a+h;
+document.write('<a h'+'ref'+'="ma'+'ilto'+':'+e+'">'+e+'<\/'+'a'+'>');
+// -->
+</script><noscript>&#x69;&#110;&#102;&#x6f;&#32;&#x61;&#116;&#32;&#118;&#x65;&#x63;&#116;&#x6f;&#114;&#98;&#108;&#x6f;&#120;&#32;&#100;&#x6f;&#116;&#32;&#x63;&#x6f;&#x6d;</noscript> if you would like to evaluate the VectorBlox MXP processor on a development board not listed here.</p>
+<h1 id="zedboard_arm_mxp"><span class="header-section-number">1</span> Avnet ZedBoard</h1>
+<p>The ZedBoard contains a Xilinx Zynq-7000 XC7Z020 FPGA with two integrated ARM Cortex-A9 processors running at 667 MHz, and 512 MB of on-board DDR3 DRAM.</p>
+<p>For more information on the board, see the following links:</p>
+<ul>
+<li>ZedBoard website: <a href="http://zedboard.org">http://zedboard.org</a></li>
+<li>Digilent website (academic pricing): <a href="http://www.digilentinc.com/Products/Detail.cfm?NavPath=2,400,1028&amp;Prod=ZEDBOARD">http://www.digilentinc.com/Products/Detail.cfm?NavPath=2,400,1028&amp;Prod=ZEDBOARD</a></li>
+</ul>
+<p>We provide pre-built bitstreams for the ZedBoard for various sizes of the MXP processor (1 to 16 vector lanes) connected to the Zynq's ARM Cortex-A9 processing subsystem.</p>
+<p>Note that these bitstreams do not include support for the ZedBoard's on-board HDMI output. If HDMI input and/or output is required, we also have bitstreams that support the on-board HDMI output as well as bitstreams that support the Avnet FMC-IMAGEON daughter-card (see below).</p>
+<p>A standalone BSP is included for each system.</p>
+<p>The bitstreams and BSPs were created with ISE 14.7.</p>
+<p>NOTE: We have tested with ZedBoard Rev C and Rev D boards. We have a report of an incompatibility with a pre-production Rev B board.</p>
+<p>The MXP processor in each system is configured as follows:</p>
+<ul>
+<li>110 MHz.</li>
+<li>64 KB of scratchpad memory.</li>
+<li>64-bit wide DMA interface (32 bits for V1 configuration).</li>
+<li>Fractional bits for fixed-point multiplication: 16 fractional bits for words, 15 for halfwords, 4 for bytes.</li>
+</ul>
+<p>The Xilinx Platform Studio <em>Bus Interfaces</em> and <em>Addresses</em> views are shown below:</p>
+<div class="figure">
+<img src="images/xps_zedboard_arm_mxp.png" alt="XPS Bus Interfaces View" /><p class="caption">XPS Bus Interfaces View</p>
+</div>
+<div class="figure">
+<img src="images/xps_zedboard_arm_mxp_addr_map.png" alt="Address Map" /><p class="caption">Address Map</p>
+</div>
+<p>(Note: our example programs use the Cortex-A9 MMU's translation table to alias the 512 MB of DDR3 DRAM to uncached strongly-ordered memory in the range 0x8000_0000 to 0x9fff_ffff.)</p>
+<h1 id="zedboard_hdmi_arm"><span class="header-section-number">2</span> Avnet ZedBoard with 1080p HDMI Video Output</h1>
+<p>These bitstreams make use of the ZedBoard's HDMI output port. They consist of:</p>
+<ul>
+<li><p>An MXP processor (8, 16 vector lanes) connected to the Zynq's ARM Cortex-A9 processing subsystem.</p></li>
+<li><p>An output video pipeline to read RGB pixels from frame buffers in DRAM and output 1920x1080p @ 60Hz HDMI video.</p></li>
+</ul>
+<p>The output video pipeline is taken from Analog Devices Inc.'s ADV7511 HDMI transmitter reference design for the ZedBoard (<a href="http://wiki.analog.com/resources/fpga/xilinx/kc705/adv7511">http://wiki.analog.com/resources/fpga/xilinx/kc705/adv7511</a>).</p>
+<p>A standalone BSP is included for each system.</p>
+<p>The bitstreams and BSPs were created with ISE 14.7.</p>
+<p>The demonstration program in <code>software/demo/zedboard</code> shows how the MXP processor can be used to generate video frames in these systems. It makes use of Analog Devices Inc.'s ADV7511 Transmitter Library.</p>
+<p>The MXP processor in each system is configured as follows:</p>
+<ul>
+<li>100 MHz.</li>
+<li>64 KB of scratchpad memory.</li>
+<li>64-bit wide DMA interface (32 bits for V1 configuration).</li>
+<li>Fractional bits for fixed-point multiplication: 16 fractional bits for words, 15 for halfwords, 4 for bytes.</li>
+<li>A custom instruction for accelerating the particle repulsion demo program.</li>
+</ul>
+<p>In both the V8 and V16 systems, the custom instruction pipeline is four logical lanes wide (vci_lanes=4).</p>
+<p>See the <a href="#custom_instructions">section below</a> for more information on custom instructions.</p>
+<p>The Xilinx Platform Studio <em>Bus Interfaces</em> and <em>Addresses</em> views are shown below:</p>
+<div class="figure">
+<img src="images/xps_zedboard_hdmi_arm.png" alt="XPS Bus Interfaces View" /><p class="caption">XPS Bus Interfaces View</p>
+</div>
+<div class="figure">
+<img src="images/xps_zedboard_hdmi_arm_addr_map.png" alt="Address Map" /><p class="caption">Address Map</p>
+</div>
+<h1 id="zedboard_imageon_arm_mxp"><span class="header-section-number">3</span> Avnet ZedBoard with FMC-IMAGEON HDMI I/O FMC Module</h1>
+<p>This setup consists of a ZedBoard (see <a href="#zedboard_arm_mxp">above</a>) and an Avnet FMC-IMAGEON daughtercard used for HDMI video input and output.</p>
+<p>For more information on the FMC-IMAGEON card, see the following links:</p>
+<ul>
+<li>Avnet FMC-IMAGEON HDMI I/O FMC Module: <a href="http://www.em.avnet.com/fmc-imageon">http://www.em.avnet.com/fmc-imageon</a></li>
+<li>The FMC-IMAGEON module can also be bought as a bundle with an ON Semiconductor VITA image sensor (<a href="http://www.em.avnet.com/fmc-imageon-v2000c">http://www.em.avnet.com/fmc-imageon-v2000c</a>) or as part of the the Xilinx Zynq-7000 SoC Video and Imaging Kit (<a href="http://www.xilinx.com/products/boards-and-kits/DK-Z7-VIDEO-G.htm">http://www.xilinx.com/products/boards-and-kits/DK-Z7-VIDEO-G.htm</a>).</li>
+</ul>
+<p>We provide pre-built bitstreams for ZedBoard + FMC-IMAGEON systems that consist of:</p>
+<ul>
+<li><p>An MXP processor (8, 16 vector lanes) connected to the Zynq's ARM Cortex-A9 processing subsystem.</p></li>
+<li><p>An input video pipeline to store incoming 1920x1080p @ 60Hz HDMI video frames into frame buffers in external DRAM (as RGB pixels).</p></li>
+<li><p>An output video pipeline to read RGB pixels from frame buffers in DRAM and output 1920x1080p @ 60Hz HDMI video.</p></li>
+</ul>
+<p><strong>NOTE:</strong> The bitstreams use a time-limited evaluation version of Xilinx's Chroma Resampler IP core (v_cresample) for conversion between YCbCr 4:2:2 and YCbCr 4:4:4 formats, so the video pipelines will stop working (the output will go blank) after about an hour. You will need to power cycle the board before reloading the bitstream.</p>
+<p>A standalone BSP is included for each system.</p>
+<p>The bitstreams and BSPs were created with ISE 14.7.</p>
+<p>The demonstration program in <code>software/demo/zedboard_imageon</code> shows how the MXP processor can be used to process video frames in these systems.</p>
+<p>The MXP processor in each system is configured as follows:</p>
+<ul>
+<li>100 MHz.</li>
+<li>64 KB of scratchpad memory.</li>
+<li>64-bit wide DMA interface (32 bits for V1 configuration).</li>
+<li>Fractional bits for fixed-point multiplication: 16 fractional bits for words, 15 for halfwords, 4 for bytes.</li>
+<li>A custom instruction for accelerating the particle repulsion demo program.</li>
+</ul>
+<p>In the V8 system, the custom instruction pipeline is two logical lanes wide (vci_lanes=2), and in the V16 system it is four logical lanes wide (vci_lanes=4).</p>
+<p>See the <a href="#custom_instructions">section below</a> for more information on custom instructions.</p>
+<p>The Xilinx Platform Studio <em>Bus Interfaces</em> and <em>Addresses</em> views are shown below:</p>
+<div class="figure">
+<img src="images/xps_zedboard_imageon_arm_mxp.png" alt="XPS Bus Interfaces View" /><p class="caption">XPS Bus Interfaces View</p>
+</div>
+<div class="figure">
+<img src="images/xps_zedboard_imageon_arm_mxp_addr_map.png" alt="Address Map" /><p class="caption">Address Map</p>
+</div>
+<h1 id="zedboard_mb"><span class="header-section-number">4</span> Avnet ZedBoard MicroBlaze System</h1>
+<p>These ZedBoard bitstreams consist of an MXP processor connected to a MicroBlaze soft-CPU implemented in the Programmable Logic portion of the Zynq FPGA.</p>
+<p>Note that these bitstreams do not include support for the ZedBoard's on-board HDMI output. If HDMI input and/or output is required, we also have MicroBlaze-based bitstreams that support the on-board HDMI output as well as bitstreams that support the Avnet FMC-IMAGEON daughter-card (see below).</p>
+<p>A standalone BSP is included for each system.</p>
+<p>The bitstreams and BSPs were created with ISE 14.7.</p>
+<p>The MicroBlaze processor in each system is configured as follows:</p>
+<ul>
+<li>100 MHz.</li>
+<li>4 KB data cache, direct-mapped, write-back, 32-byte line size.</li>
+<li>8 KB instruction cache, direct-mapped, 32-byte line size.</li>
+<li>1024-entry branch target cache.</li>
+<li>barrel shifter.</li>
+<li>hardware integer multiplier for mul, muli support.</li>
+<li>machine status register bit set/clear instructions.</li>
+<li>pattern compare instructions.</li>
+<li>reversed load/store and swap instructions.</li>
+<li>no integer divider, no floating point unit, no memory management unit.</li>
+</ul>
+<p>The MXP processor in each system is configured as follows:</p>
+<ul>
+<li>100 MHz.</li>
+<li>64 KB of scratchpad memory.</li>
+<li>64-bit wide DMA interface (32 bits for V1 configuration).</li>
+<li>Fractional bits for fixed-point multiplication: 16 fractional bits for words, 15 for halfwords, 4 for bytes.</li>
+</ul>
+<p>The Xilinx Platform Studio <em>Bus Interfaces</em> and <em>Addresses</em> views are shown below:</p>
+<div class="figure">
+<img src="images/xps_zedboard_mb.png" alt="XPS Bus Interfaces View" /><p class="caption">XPS Bus Interfaces View</p>
+</div>
+<div class="figure">
+<img src="images/xps_zedboard_mb_addr_map.png" alt="Address Map" /><p class="caption">Address Map</p>
+</div>
+<p>Note that DRAM is aliased to the range 0x8000_0000 to 0x9fff_ffff for uncached access via the MicroBlaze's M_AXI_DP port.</p>
+<h1 id="zedboard_hdmi_mb"><span class="header-section-number">5</span> Avnet ZedBoard MicroBlaze System with 1080p HDMI Video Output</h1>
+<p>These MicroBlaze-based bitstreams make use of the ZedBoard's HDMI output port. They consist of:</p>
+<ul>
+<li><p>An MXP processor (8, 16 vector lanes) connected to a MicroBlaze CPU.</p></li>
+<li><p>An output video pipeline to read RGB pixels from frame buffers in DRAM and output 1920x1080p @ 60Hz HDMI video.</p></li>
+</ul>
+<p>The output video pipeline is taken from Analog Devices Inc.'s ADV7511 HDMI transmitter reference design for the ZedBoard (<a href="http://wiki.analog.com/resources/fpga/xilinx/kc705/adv7511">http://wiki.analog.com/resources/fpga/xilinx/kc705/adv7511</a>).</p>
+<p>A standalone BSP is included for each system.</p>
+<p>The bitstreams and BSPs were created with ISE 14.7.</p>
+<p>The demonstration program in <code>software/demo/zedboard</code> shows how the MXP processor can be used to generate video frames in these systems. It makes use of Analog Devices Inc.'s ADV7511 Transmitter Library.</p>
+<p>The MicroBlaze processor in each system is configured as in the <a href="#zedboard_mb">bare-bones MicroBlaze bitstreams</a>.</p>
+<p>The MXP processor in each system is configured as follows:</p>
+<ul>
+<li>100 MHz.</li>
+<li>64 KB of scratchpad memory.</li>
+<li>64-bit wide DMA interface (32 bits for V1 configuration).</li>
+<li>Fractional bits for fixed-point multiplication: 16 fractional bits for words, 15 for halfwords, 4 for bytes.</li>
+<li>A custom instruction for accelerating the particle repulsion demo program.</li>
+</ul>
+<p>In both the V8 and V16 systems, the custom instruction pipeline is four logical lanes wide (vci_lanes=4).</p>
+<p>See the <a href="#custom_instructions">section below</a> for more information on custom instructions.</p>
+<p>The Xilinx Platform Studio <em>Bus Interfaces</em> and <em>Addresses</em> views are shown below:</p>
+<div class="figure">
+<img src="images/xps_zedboard_hdmi_mb.png" alt="XPS Bus Interfaces View" /><p class="caption">XPS Bus Interfaces View</p>
+</div>
+<div class="figure">
+<img src="images/xps_zedboard_hdmi_mb_addr_map.png" alt="Address Map" /><p class="caption">Address Map</p>
+</div>
+<p>Note that DRAM is aliased to the range 0x8000_0000 to 0x9fff_ffff for uncached access via the MicroBlaze's M_AXI_DP port.</p>
+<h1 id="zedboard_imageon_mb"><span class="header-section-number">6</span> Avnet ZedBoard MicroBlaze System with FMC-IMAGEON HDMI I/O FMC Module</h1>
+<p>These MicroBlaze-based bitstreams make use of the Avnet FMC-IMAGEON daughtercard for HDMI video input and output (see <a href="#zedboard_imageon_arm_mxp">above</a>). They consist of</p>
+<ul>
+<li><p>An MXP processor (8, 16 vector lanes) connected to a MicroBlaze CPU.</p></li>
+<li><p>An input video pipeline to store incoming 1920x1080p @ 60Hz HDMI video frames into frame buffers in external DRAM (as RGB pixels).</p></li>
+<li><p>An output video pipeline to read RGB pixels from frame buffers in DRAM and output 1920x1080p @ 60Hz HDMI video.</p></li>
+</ul>
+<p><strong>NOTE:</strong> The bitstreams use a time-limited evaluation version of Xilinx's Chroma Resampler IP core (v_cresample) for conversion between YCbCr 4:2:2 and YCbCr 4:4:4 formats, so the video pipelines will stop working (the output will go blank) after about an hour. You will need to power cycle the board before reloading the bitstream.</p>
+<p>A standalone BSP is included for each system.</p>
+<p>The bitstreams and BSPs were created with ISE 14.7.</p>
+<p>The demonstration program in <code>software/demo/zedboard_imageon</code> shows how the MXP processor can be used to process video frames in these systems.</p>
+<p>The MicroBlaze processor in each system is configured as in the <a href="#zedboard_mb">bare-bones MicroBlaze bitstreams</a>.</p>
+<p>The MXP processor in each system is configured as follows:</p>
+<ul>
+<li>100 MHz.</li>
+<li>64 KB of scratchpad memory.</li>
+<li>64-bit wide DMA interface (32 bits for V1 configuration).</li>
+<li>Fractional bits for fixed-point multiplication: 16 fractional bits for words, 15 for halfwords, 4 for bytes.</li>
+<li>A custom instruction for accelerating the particle repulsion demo program.</li>
+</ul>
+<p>In the V8 system, the custom instruction pipeline is four logical lanes wide (vci_lanes=4), and in the V16 system it is only two logical lanes wide (vci_lanes=2) because of space constraints in the XCZ7020 FPGA.</p>
+<p>See the <a href="#custom_instructions">section below</a> for more information on custom instructions.</p>
+<p>The Xilinx Platform Studio <em>Bus Interfaces</em> and <em>Addresses</em> views are shown below:</p>
+<div class="figure">
+<img src="images/xps_zedboard_imageon_mb.png" alt="XPS Bus Interfaces View" /><p class="caption">XPS Bus Interfaces View</p>
+</div>
+<div class="figure">
+<img src="images/xps_zedboard_imageon_mb_addr_map.png" alt="Address Map" /><p class="caption">Address Map</p>
+</div>
+<p>Note that DRAM is aliased to the range 0x8000_0000 to 0x9fff_ffff for uncached access via the MicroBlaze's M_AXI_DP port.</p>
+<h1 id="custom_instructions"><span class="header-section-number">7</span> Custom Instruction Descriptions</h1>
+<p>As noted above, certain board configurations come equipped with custom instructions such as fixed-point divide, square root, and particle repulsion force calculation. As these custom instructions are specific to particular systems, code written using custom instructions will not be portable to all systems. Systems with the same custom instructions have a variable number of custom instruction lanes, which can affect performance and programming. See the <a href="mxp_reference.html">MXP Programming Reference</a> for further information on custom instructions.</p>
+<h2 id="particle-repulsion"><span class="header-section-number">7.1</span> Particle Repulsion</h2>
+<p>The particle repulsion custom instruction is for accelerating the particle repulsion demo program. The pipeline is described in the following conference paper: A. Severance, J. Edwards, H. Omidian, G. Lemieux, &quot;Soft Vector Processors with Streaming Pipelines,&quot; <em>International Symposium on Field-Programmable Gate Arrays (FPGA)</em>, February, 2014 (<a href="http://www.ece.ubc.ca/~lemieux/publications/severance-fpga2014.pdf">http://www.ece.ubc.ca/~lemieux/publications/severance-fpga2014.pdf</a>). <!-- (<http://www.ece.ubc.ca/~lemieux/publications/bytopic.html>). --></p>
+<p>The particle repulsion custom instruction interface is not standardized, and should only be used in the supplied particle repulsion demo.</p>
+</div>
+</div>
+</div>
+<script src="js/jquery-1.8.3.min.js"></script>
+<script src="js/jquery-ui-1.9.1.custom.min.js"></script>
+<script src="js/bootstrap.js"></script>
+<script src="js/jquery.tocify.min.js"></script>
+<script>
+$(function() {
+    var toc = $("#toc").tocify({
+        selectors: "h1, h2",
+        history: false,
+        smoothScrollSpeed: "fast",
+        }).data("toc-tocify");
+      $(".optionName").popover({ trigger: "hover" });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,1488 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title>VectorBlox MXP Programming Reference</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+<link type="text/css" rel="stylesheet" href="css/bootstrap.css"/>
+<link type="text/css" rel="stylesheet" href="css/jquery.ui.all.css"/>
+<link type="text/css" rel="stylesheet" href="css/jquery.tocify.css"/>
+<style>
+body {
+    padding-top: 20px;
+}
+p {
+    font-size: 16px;
+}
+.headerDoc {
+    color: #005580;
+}
+
+@media (max-width: 767px) {
+    #toc {
+        position: relative;
+        width: 100%;
+        margin: 0px 0px 20px 0px;
+    }
+}
+</style>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-48667957-1', 'vectorblox.github.io');
+  ga('send', 'pageview');
+
+</script>
+</head>
+<body>
+<div class="container-fluid">
+<div class="row-fluid">
+<div class="span3">
+<div id="toc"></div>
+</div>
+<div class="span9">
+<div id="header">
+<h1 class="title">VectorBlox MXP Programming Reference</h1>
+</div>
+<h1 id="mxp_processor"><span class="header-section-number">1</span> MXP Processor</h1>
+<h2 id="mxp_processor_architecture"><span class="header-section-number">1.1</span> MXP Processor Architecture</h2>
+<p>The VectorBlox MXP Matrix Processor is an accelerator for data-parallel operations. It excels at applications like image processing where every pixel in a large set of data is subjected to the same sequence of calculations. With just a single instruction, the MXP can apply an operation to a vector, matrix, submatrix, volume, or sub-volume of data.</p>
+<p>Architecturally, a vector engine and a DMA engine comprise the MXP processor. For maximum performance, the vector engine and the DMA engine can run at a different clock frequency than the host processor, or they can be frequency-locked with the host to provide guaranteed low-latency communication.</p>
+<p>The MXP vector engine is made up of several parallel vector lanes. Each lane contains a 32-bit ALU and a portion of scratchpad memory. A typical MXP instance will have from 1 to 256 vector lanes, and roughly 4KB of scratchpad per vector lane. The ALU and scratchpad can also be subdivided to operate on sub-word arithmetic with halfwords (16-bits) or bytes (8-bits). In this case, the architecture provides two or four times the amount of data-level parallelism.</p>
+<p>The MXP DMA engine can operate concurrently with the vector engine, allowing it to fetch operands or store results in main memory while vector calculations are taking place. For many compute-intensive algorithms, the latency of main memory can be completely hidden by the programmer through double buffering.</p>
+<h3 id="scratchpad"><span class="header-section-number">1.1.1</span> Scratchpad</h3>
+<p>Unlike traditional processors, the MXP does not have any data or address registers. Instead, all vector or matrix operations are performed <em>memory-to-memory</em> directly upon the scratchpad. This maximizes MXP performance, as the MXP does not need to load or store any vector data, and it does not need additional memory to hold a working set of values. From another viewpoint, the scratchpad <em>is</em> the register file.</p>
+<p>The scratchpad works much like an explicitly managed cache. The primary means to transfer data in or out of the scratchpad is under DMA control. However, elements in the scratchpad can be directly accessed by the host processor by reading or writing a pointer into the scratchpad. This is considered a secondary access mechanism and is intended primarily for debugging or communicating very small amounts of information. For performance reasons, access to the scratchpad in this fashion is asynchronous with the vector engine, i.e. reads and writes to the pointer are not guaranteed to be executed in program order relative to vector instructions. To guarantee ordering, a programmer must explicitly stall the host processor to synchronize it with the MXP processor.</p>
+<h3 id="other-processor-state"><span class="header-section-number">1.1.2</span> Other Processor State</h3>
+<p>In addition to the scratchpad, the MXP has 32 internal control registers, each of 32 bits in size. These are organized as a 32-entry memory, but they are not memory-mapped. To access them, an API is provided to save and restore each entry.</p>
+<p>The first set of sixteen control registers are reserved for hardware use. They presently contain the mask status register, current vector length and parametersgoverning the 2D and 3D matrix sizes, for a total of 10 words. This leaves 6 words still undefined.</p>
+<p>The second group of sixteen control registers are software-defined. Presently, only the first word of this set is defined – it contains an instance pointer to a <code>vbx_mxp_t</code> data structure which fully describes all parameters regarding the MXP processor hardware (such as the number of lanes and its clock frequency).</p>
+<p>There is no other state information held in the MXP hardware.</p>
+<h3 id="vbx-api-and-vbxware-software-state"><span class="header-section-number">1.1.3</span> VBX API and VBXware Software State</h3>
+<p>The VBX API maintains some global state to manage the scratchpad. In particular, it maintains a stack called <em>spstack</em> which can be used to save/restore the current position of scratchpad pointer. The scratchpad pointer is the high-water mark of memory allocated out of the scratchpad.</p>
+<p>A future enhancement of the VBX API will use <em>spstack</em> to save and restore the processor state as well as the scratchpad pointer.</p>
+<p>Another future enhancement of the VBX API will allow callees to spill scratchpad data to external memory when there is insufficient scratchpad space remaining. This will use the scratchpad in a LIFO fashion, spilling the beginning of the scratchpad once it is full. In this way, each layer (of a stack of library software) can potentially utilize the entire scratchpad for its own purposes before returning to the caller.</p>
+<p>Each portion of the VBXware API maintains its own state information.</p>
+<h2 id="mxp_processor_parameters"><span class="header-section-number">1.2</span> MXP Processor Parameters</h2>
+<p>Each MXP vector engine can be uniquely configured by several parameters, including the number of vector lanes or the size of the scratchpad. These parameters are maintained in the <code>vbx_mxp_t</code> data structure, which is defined in <code>vbx_types.h</code>. A pointer to this structure is stored in one of the control registers of the MXP processor. The sample code below shows how to obtain this instance pointer and access the parameters.</p>
+<pre class="sourceCode c"><code class="sourceCode c">vbx_mxp_t * the_mxp = VBX_GET_THIS_MXP();
+<span class="dt">int</span> num_vector_lanes = the_mxp-&gt;vector_lanes;</code></pre>
+<p>A list of the parameters stored in this structure and their meaning are given in the following table</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Type</th>
+<th align="left">Parameter</th>
+<th align="left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><em>Fixed MXP CPU characteristics</em></td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left"><code>vbx_void_t</code></td>
+<td align="left">scratchpad_addr</td>
+<td align="left">Uncached pointer to the first byte of the scratchpad</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>vbx_void_t *</code></td>
+<td align="left">scratchpad_end</td>
+<td align="left">Uncached pointer one byte past the end of the scratchpad</td>
+</tr>
+<tr class="even">
+<td align="left"><code>int</code></td>
+<td align="left">scratchpad_size</td>
+<td align="left">Size of the scratchpad in bytes</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>int</code></td>
+<td align="left">core_freq</td>
+<td align="left">Clock frequency of the MXP in Hz</td>
+</tr>
+<tr class="even">
+<td align="left"><code>short</code></td>
+<td align="left">vector_lanes</td>
+<td align="left">Number of vector lanes</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>short</code></td>
+<td align="left">vcustomX_lanes</td>
+<td align="left">Number of lanes for <code>VCUSTOMX</code> (X from 0 to 15) opcode</td>
+</tr>
+<tr class="even">
+<td align="left"><code>short</code></td>
+<td align="left">max_masked_vector_length</td>
+<td align="left">Maximum length of a masked vector instruction</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>short</code></td>
+<td align="left">mask_partitions</td>
+<td align="left">Number of mask partitions (0 if disabled)</td>
+</tr>
+<tr class="even">
+<td align="left"><code>char</code></td>
+<td align="left">vector_custom_instructions</td>
+<td align="left">The number of vector custom instructions attached</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>char</code></td>
+<td align="left">fxp_word_frac_bits</td>
+<td align="left">Number of fractional bits in word-wise fixed-point multiply</td>
+</tr>
+<tr class="even">
+<td align="left"><code>char</code></td>
+<td align="left">fxp_half_frac_bits</td>
+<td align="left">Number of fractional bits in halfword-wise fixed-point multiply</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>char</code></td>
+<td align="left">fxp_byte_frac_bits</td>
+<td align="left">Number of fractional bits in byte-wise fixed-point multiply</td>
+</tr>
+<tr class="even">
+<td align="left"><em>MXP flags</em></td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left"><code>char</code></td>
+<td align="left">init</td>
+<td align="left">A flag confirming this structure was initialized</td>
+</tr>
+<tr class="even">
+<td align="left"><em>MXP run-time state</em></td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left"><code>vbx_void_t *</code></td>
+<td align="left">sp</td>
+<td align="left">Next free location in the scratchpad</td>
+</tr>
+<tr class="even">
+<td align="left"><code>vbx_void_t **</code></td>
+<td align="left">spstack</td>
+<td align="left">Starting address of the stack of scratchpad pointers</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>int</code></td>
+<td align="left">spstack_top</td>
+<td align="left">Entry for the top-of-stack</td>
+</tr>
+<tr class="even">
+<td align="left"><code>int</code></td>
+<td align="left">spstack_max</td>
+<td align="left">Maximum number of words in the stack</td>
+</tr>
+</tbody>
+</table>
+<h1 id="mxp_instruction_set"><span class="header-section-number">2</span> MXP Instruction Set</h1>
+<p>The MXP instruction set consists of a set of basic vector instructions. Furthermore, each basic vector instruction can be used in up to 432 different modes which govern further details about the operation, such as signed/unsigned, 1D/2D/3D, data size of bytes/halfwords/words, and whether to accumulate the results. These basic instructions and various modes are all described below.</p>
+<h2 id="basic_vector_instructions"><span class="header-section-number">2.1</span> Basic Vector Instructions</h2>
+<p>MXP vector instructions are invoked with the following macro:</p>
+<pre class="sourceCode c"><code class="sourceCode c">vbx( mode, instr, dest, srcA, srcB );</code></pre>
+<p>The parameters to the macro are as follows:</p>
+<ul>
+<li><p><code>mode</code> is a compile-time constant that provides type and datasize information</p></li>
+<li><p><code>instr</code> is a compile-time constant representing the instruction</p></li>
+<li><p><code>dest</code> is the destination operand</p></li>
+<li><p><code>srcA</code> is the source operand A</p></li>
+<li><p><code>srcB</code> is the source operand B</p></li>
+</ul>
+<h3 id="source_and_destination_operands"><span class="header-section-number">2.1.1</span> Source and Destination Operands</h3>
+<p>The operands have the following properties:</p>
+<ul>
+<li><p><code>dest</code> is always a pointer to the scratchpad.</p></li>
+<li><p><code>srcA</code> can be either a 32-bit scalar quantity (for scalar modes), or a pointer to the scratchpad (for vector modes).</p></li>
+<li><p><code>srcB</code> is always a pointer to the scratchpad (for vector modes), or it is ignored (for the <code>VMOV</code> instruction, or enumerated vector modes). When ignored, we recommend specifying a <code>srcB</code> value of 0.</p></li>
+</ul>
+<p>See the section on <a href="#vbx_hazards">hazards</a> regarding the possibility of data race hazards with vector instructions, particularly when operands point to overlapping memory regions.</p>
+<h3 id="mode_type_and_datasize_specifier"><span class="header-section-number">2.1.2</span> Mode Type and Datasize Specifier</h3>
+<p>The <code>mode</code> is a 3 to 5 letter constant symbol where each letter has a meaning. The symbol can be generalized as a triplet <code>WXY</code> where:</p>
+<ul>
+<li><p><code>W</code> is one of <code>{ VV, SV, VE, SE }</code></p></li>
+<li><p><code>X</code> is one of <code>{ B, H, W, BB, BH, BW, HB, HH, HW, WB, WH, WW }</code></p></li>
+<li><p><code>Y</code> is one of <code>{ S, U }</code> or empty (defaults to <code>S</code>).</p></li>
+</ul>
+<p>The <code>W</code> field is a two-letter <strong>type specifier</strong> indicating vector (<code>V</code>), scalar (<code>S</code>), or enumerated (<code>E</code>) types. The first letter indicates the type for <code>srcA</code>, while the second letter indicates the type for <code>srcB</code>. Hence, <code>srcA</code> can only be a <strong>vector</strong> or <strong>scalar type</strong>, while <code>srcB</code> can only be a vector or <strong>enumerated type</strong>. The enumerated type produces a vector of constants for operand <code>srcB</code>, starting at 0 and incrementing by 1 for each vector element. Since enumerated types ignore the value specified in <code>srcB</code>, we recommend specifying a value of 0.</p>
+<p>For 2D and 3D matrix instructions, discussed later, the enumerated value resets to 0 at the beginning of each new row. To produce totally unique enumerated elements across the entire matrix, additional instructions are required to add the row number or matrix number to each row or matrix.</p>
+<p>The <code>X</code> field is a <strong>datasize specifier</strong> of byte (<code>B</code>), halfword (<code>H</code>), or word (<code>W</code>). When a single letter is specified, the source and the destination operands all use the specified datasize. The two-character versions with a repeated letter (namely <code>BB</code>, <code>HH</code>, and <code>WW</code>) are equivalent to <code>B</code>, <code>H</code>, and <code>W</code>, respectively.</p>
+<p>When two different letters are used in the <strong>datasize specifier</strong>, a <strong>datasize conversion</strong> takes place. The first letter indicates the source datasize, while the second letter indicates the destination datasize. Before performing the requested operation, the processor will either expand the data (using sign-extension for signed, or zero-extension for unsigned) or truncate it to match the <em>larger</em> of the source and destination datasizes. For example, <code>VVBH</code> will take two source operands which are byte vectors, convert them to halfword input vectors on the fly, and compute a halfword vector result. This is convenient with addition, subtraction, and multiply instructions, as it eliminates the possibility of overflow/carry-out. It is also possible to go in the reverse direction, e.g. <code>VVHB</code>, which combines two halfword vectors and truncates the result into a byte vector. A datasize reduction such as this may be useful if the difference between vectors is guaranteed to be small. Note that both source operands, <code>srcA</code> and <code>srcB</code>, must have matching datasizes. Scalar and enumerated operands are not truncated to the input width when expanding (<code>BH</code>, <code>BW</code>, or <code>HW</code> datasize specifier), but rather used at the larger output width.</p>
+<p>There are two special cases to consider with <strong>datasize conversion</strong>. First, datasize conversion with the fixed-point multiply instruction, <code>VMULFXP</code>, produces an undefined result. To convert between fixed-point representations (byte/halfword/word) where the binary point is in a different position, use a shift operation (<code>VSHR</code> or <code>VSHL</code>) to move the binary point and a datasize conversion to expand or truncate the result. Second, datasize conversion with an accumulated vector instruction performs the requested operation at the original source datasize, not at the larger datasize. However, the destination datasize is used when accumulating the intermediate values and writing the final result.</p>
+<p>The <code>Y</code> field is an optional <strong>sign specifier</strong> of unsigned (<code>U</code>) or signed (<code>S</code>). If omitted, the default behaviour is always <em>signed</em>. Note that logical versus arithmetic right-shifting via the <code>VSHR</code> instruction is distinguished via this signed specifier. Also, note that some instructions <!---**(FIXME: imprecise)**-->, for example the bit-rotating instructions <code>VROTR</code> and <code>VROTL</code>, don’t make sense as signed operations and so behave as an <em>unsigned</em> operation no matter which <strong>sign specifier</strong> is used. <!---(**FIXME:** A signed `VROTR` makes sense if a
+datasize conversion takes place – is the sign specifier ignored during
+datasize conversion with these instructions?)--></p>
+<h3 id="instruction_specifier"><span class="header-section-number">2.1.3</span> Instruction Specifier</h3>
+<p>The <code>instr</code> is a constant symbol specifying the desired vector operation. The instructions must be one of:</p>
+<ul>
+<li><p>bitwise logical   <code>VAND</code>, <code>VOR</code>, <code>VXOR</code>, <code>VSHL</code>, <code>VSHR</code>, <code>VROTL</code>, <code>VROTR</code></p></li>
+<li><p>arithmetic   <code>VADD</code>, <code>VSUB</code>, <code>VADDC</code>, <code>VSUBB</code>, <code>VABSDIFF</code>, <code>VMUL</code>, <code>VMULLO</code>, <code>VMULHI</code>, <code>VMULFXP</code></p></li>
+<li><p>move and conditional-move   <code>VMOV</code>, <code>VCMV_LEZ</code>, <code>VCMV_GTZ</code>, <code>VCMV_LTZ,</code> <code>VCMV_GEZ</code>, <code>VCMV_Z</code>, <code>VCMV_NZ</code></p></li>
+<li><p>custom   <code>VCUSTOMX</code>, for X from 0 to 15</p></li>
+</ul>
+<p>For the shift and rotate instructions, <code>srcA</code> specifies the amount of the shift/rotate, while <code>srcB</code> specifies the value to be shifted/rotated. The sign specifier distinguishes arithmetic from logical shifts.</p>
+<p>For the unconditional move instruction, <code>VMOV</code>, operand <code>srcB</code> is unused and should be specified as 0.</p>
+<p>The arithmetic instructions <code>ADDC</code> and <code>SUBB</code> are used for extended-precision operations where the carry/borrow flag from the <code>srcB</code> operand is added to the <code>srcA</code> operand.</p>
+<p>For multiplication, the result requires twice as many bits as the source operands. Hence, the operations <code>VMUL</code> or <code>VMULLO</code> produce the lower half of the product, while <code>VMULHI</code> produces the upper half of the product. Multiplication can also be used with a datasize-conversion operation from byte-to-halfword, or from halfword-to-word (see the section on <a href="#mode_type_and_datasize_specifier">datasize specifiers</a>). In this case, the <code>VMUL</code> or <code>VMULLO</code> instruction places the entire product in the destination.</p>
+<p>For instructions that undergo a datasize conversion, execution at the ALU is always performed at the widest datasize, unless an accumulated instruction is done in which case the source datasize is used. Expansion or up-conversion relies upon sign-extension (for signed) or zero-extension (for unsigned). Conversely, down-conversion relies upon truncation, with the upper bytes being discarded.</p>
+<p>Many instructions can also generate a 1-bit flag result per element. Also, a few instructions alter their behaviour depending upon the flag setting. These are discussed in the section on <a href="#conditional_move_and_flags">conditional moves</a>.</p>
+<p>The fixed-point multiply operation <code>VMULFXP</code> will perform a multiply followed by a shift right to keep the correct number of fractional bits when multiplying fixed-point numbers. The fixed-point format, and therefore the amount of the right shift, is fixed and predetermined at system build time. Formats with no integer bits (Q0.8 for byte, Q0.16 for halfword, and Q0.32 for word) are not supported by <code>VMULFXP</code>; <code>VMULHI</code> performs the function a <code>VMULFXP</code> operation would for these formats and should be used instead. <code>VMULFXP</code> may overflow if the result is too large in magnitude to fit in the supported fixed-point format. In the case of overflow, the flag bit is set to 1 (see <a href="#updates_to_flag_state">updates to flag state</a>). Additionally, signed <code>VMULFXP</code> operations are sign preserving; the MSB of the result is set to the numerically correct sign even if the operation overflowed, so that the result can be saturated positive or negative if desired. The <code>VMULFXP</code> instruction produces an undefined result when used together with datasize conversion.</p>
+<p>For the conditional move instructions, <code>srcA</code> provides the value to move, while <code>srcB</code> provides the logical predicate. For each element of a conditional move, a logical true predicate value results in the value from <code>srcA</code> being written to <code>dest</code>. Further details concerning conditional moves and flags are discussed in the section on <a href="#conditional_move_and_flags">conditional moves</a>.</p>
+<p>Custom instructions (<code>VCUSTOM0-15</code>) are an experimental feature allowing system specific instructions through an external port to the MXP. MXP instances may have 0 to 16 custom operators attached. If a custom instruction is issued while there is no custom operator on the corresponding port, the result is undefined. Simple custom instructions function the same way as normal vector instructions, while more complex instructions can be built that allow for more than two inputs and multiple outputs but require extra setup. The number of custom instruction lanes may be equal to or fewer than the number of vector lanes; this can be queried by software reading the <code>vcustomX_lanes</code> parameter corresponding to the <code>VCUSTOMX</code> opcode being used. In the case the number of custom instruction lanes is fewer than the number of vector lanes, custom instructions will take correspondingly longer to execute. Consult your system documentation to find the custom instructions it has attached and their usage. Information for custom instruction creators can be found in the <em>VectorBlox MXP Custom Instruction Manual</em>.</p>
+<h3 id="specifying_1d_vector_length"><span class="header-section-number">2.1.4</span> Specifying 1D Vector Length</h3>
+<p>Before invoking any 1D vector instruction, the programmer must first specify the dimensions of the data to the MXP. This is done by setting the <em>vector length register</em> using:</p>
+<pre class="sourceCode c"><code class="sourceCode c">vbx_set_vl( vl );</code></pre>
+<p>The <em>unsigned</em> integer argument <code>vl</code> specifies the number of <strong>vector elements</strong> in the operation. Hence, a setting of <code>vl = 10</code> will operate on 10 bytes, 10 halfwords, or 10 words, depending upon the datasize specifier. The number of <strong>vector elements</strong> can be set from 1 to the full vector scratchpad size (in bytes), inclusive. Setting a vector length of 0, or greater than the scratchpad size, results in undefined behaviour.</p>
+<p>The MXP will always remember the latest vector length that was set. While this is convenient, it can also be problematic if called functions or third party libraries change the value as a side effect. To reduce such unpleasant side effects, the VBXware library always saves and restores the vector length register (as well as the 2D and 3D dimension registers).</p>
+<h2 id="accumulated_vector_instructions"><span class="header-section-number">2.2</span> Accumulated Vector Instructions</h2>
+<p>All basic MXP instructions can be compounded with an <strong>accumulate</strong> operation. This accumulation does not require any additional run-time. To use it, replace the <code>vbx()</code> macro with the <code>vbx_acc()</code> macro. The arguments for this macros are exactly the same as before:</p>
+<pre class="sourceCode c"><code class="sourceCode c">vbx_acc( mode, instr, dest, srcA, srcB );</code></pre>
+<p>The <strong>accumulate</strong> operation will sum all of the elements of a vector. Hence, the result written to <code>dest</code> is a single element, not a vector of elements. The size of the result element is determined by the destination datasize specifier.</p>
+<p>When used with the <code>VABSDIFF</code> instruction, the <strong>accumulate</strong> operation computes the sum-of-absolute-differences in a single instruction as follows:</p>
+<pre class="sourceCode c"><code class="sourceCode c">vbx_acc( mode, VABSDIFF, dest, srcA, srcB );</code></pre>
+<h2 id="vbx_2d_3d_instructions"><span class="header-section-number">2.3</span> 2D and 3D Matrix Instructions</h2>
+<p>Vector instructions can operate on 1D vectors as well as 2D or 3D matrices. The 2D and 3D modes provide higher performance and increased code density.</p>
+<p>The following API calls are used to invoke 2D or 3D operations:</p>
+<pre class="sourceCode c"><code class="sourceCode c">vbx_2D()
+
+vbx_acc_2D()
+
+vbx_3D()
+
+vbx_acc_3D()</code></pre>
+<p>To use them, simply replace the 1D vector operation <code>vbx()</code> with <code>vbx_2D()</code> or <code>vbx_3D()</code>, for example. The arguments for these macros are exactly the same as before.</p>
+<h3 id="specifying_2d_3d_sizes"><span class="header-section-number">2.3.1</span> Specifying 2D and 3D Matrix Sizes</h3>
+<p>Before invoking a 2D matrix instruction, the programmer must set the current <em>2D matrix size registers</em> using two calls:</p>
+<pre class="sourceCode c"><code class="sourceCode c">vbx_set_vl( vl );
+vbx_set_2D( numRows, incDest2, incSrcA2, incSrcB2 );</code></pre>
+<p>Likewise, before invoking a 3D matrix instruction, the programmer must set the current <em>3D matrix size registers</em> using three calls:</p>
+<pre class="sourceCode c"><code class="sourceCode c">vbx_set_vl( vl );
+vbx_set_2D( numRows, incDest2, incSrcA2, incSrcB2 );
+vbx_set_3D( numMats, incDest3, incSrcA3, incSrcB3 );</code></pre>
+<p>These functions are further described in the section on <a href="#specifying_vector_and_matrix_sizes">vector length and matrix size</a>.</p>
+<p>For both 2D and 3D operations, the increment amounts for the sources and destination are specified in units of bytes, not elements. This differs from the <code>vbx_set_vl()</code> function which specifies the vector length in units of elements.</p>
+<p>The MXP will always remember the latest vector length and matrix dimensions that were set. While this is convenient, it can also be problematic if called functions or third party libraries change the values as a side effect. To reduce such unpleasant side effects, the VBXware library always saves and restores these registers.</p>
+<h3 id="accumulating_2d_3d"><span class="header-section-number">2.3.2</span> Accumulating 2D and 3D Matrices</h3>
+<p>When using the <em>accumulate</em> compound operation with 2D matrix operations, the MXP will write one result element per row. This produces a vector of result elements equal in length to <code>numRows</code>. The size of each result element is determined by the destination datasize specifier.</p>
+<p>Likewise, 3D matrix operations will write one vector of result elements per submatrix, producing a matrix of result elements of width <code>numRows</code> and of height <code>numMats</code>.</p>
+<h2 id="conditional_move_and_flags"><span class="header-section-number">2.4</span> Conditional Move and Flags</h2>
+<p>Data-dependent behaviour within the vector engine is accomplished via conditional move instructions. This allows you to implement thresholding and other types of conditional behaviour.</p>
+<p>In addition to the normal vector data of 8, 16, or 32 bits per element, MXP stores one additional bit per element, called a <strong>flag</strong>. This bit can be set or cleared by certain operations, and it can alter the behaviour of other operations.</p>
+<p>In particular, the flag is used by relational conditional move instructions, along with the regular of the bits in each element, to calculate the move predicate. Also, the <code>VADDC</code> and <code>VSUBB</code> instructions consider the flag as extra bit for carry-in or borrow.</p>
+<p>When the flag bit of a scalar inputs is used, its flag is treated being <span class="math">0</span>. That is, for <code>SV</code> and <code>SE</code> type specifiers, <span class="math"><em>F</em><sub><em>A</em></sub></span> is <span class="math">0</span>. Likewise enumerated inputs are treated as <span class="math">0</span>; for <code>VE</code> and <code>SE</code> type specifiers <span class="math"><em>F</em><sub><em>B</em></sub></span> is <span class="math">0</span>.</p>
+<h3 id="updates_to_flag_state"><span class="header-section-number">2.4.1</span> Updates to Flag State</h3>
+<p>An element’s flag bit is modified by the operations listed in</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Sign specifier</th>
+<th align="left">Instruction</th>
+<th align="left">Flag produced</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Unsigned</td>
+<td align="left">any <em>accumulate</em></td>
+<td align="left"><span class="math"><em>V</em></span> (subject to change)</td>
+</tr>
+<tr class="even">
+<td align="left">Signed</td>
+<td align="left">any <em>accumulate</em></td>
+<td align="left"><span class="math"><em>V</em> † </span> (subject to change)</td>
+</tr>
+<tr class="odd">
+<td align="left">Unsigned</td>
+<td align="left"><code>VADD</code></td>
+<td align="left"><span class="math"><em>C</em></span></td>
+</tr>
+<tr class="even">
+<td align="left">Unsigned</td>
+<td align="left"><code>VADDC</code></td>
+<td align="left"><span class="math"><em>C</em></span></td>
+</tr>
+<tr class="odd">
+<td align="left">Unsigned</td>
+<td align="left"><code>VSUB</code></td>
+<td align="left"><span class="math"><em>B</em></span></td>
+</tr>
+<tr class="even">
+<td align="left">Unsigned</td>
+<td align="left"><code>VSUBB</code></td>
+<td align="left"><span class="math"><em>B</em></span></td>
+</tr>
+<tr class="odd">
+<td align="left">Signed</td>
+<td align="left"><code>VADD</code></td>
+<td align="left"><span class="math"><em>V</em></span></td>
+</tr>
+<tr class="even">
+<td align="left">Signed</td>
+<td align="left"><code>VADDC</code></td>
+<td align="left"><span class="math"><em>V</em></span></td>
+</tr>
+<tr class="odd">
+<td align="left">Signed</td>
+<td align="left"><code>VSUB</code></td>
+<td align="left"><span class="math"><em>V</em></span></td>
+</tr>
+<tr class="even">
+<td align="left">Signed</td>
+<td align="left"><code>VSUBB</code></td>
+<td align="left"><span class="math"><em>V</em></span></td>
+</tr>
+<tr class="odd">
+<td align="left">Either</td>
+<td align="left"><code>VMUL</code></td>
+<td align="left"><span class="math"><em>V</em></span></td>
+</tr>
+<tr class="even">
+<td align="left">Either</td>
+<td align="left"><code>VMULLO</code></td>
+<td align="left"><span class="math"><em>V</em></span></td>
+</tr>
+<tr class="odd">
+<td align="left">Either</td>
+<td align="left"><code>VSHL</code></td>
+<td align="left"><span class="math"><em>V</em></span></td>
+</tr>
+<tr class="even">
+<td align="left">Either</td>
+<td align="left"><code>VMULHI</code></td>
+<td align="left"><span class="math"><em>R</em></span></td>
+</tr>
+<tr class="odd">
+<td align="left">Either</td>
+<td align="left"><code>VSHR</code></td>
+<td align="left"><span class="math"><em>R</em></span></td>
+</tr>
+<tr class="even">
+<td align="left">Unsigned</td>
+<td align="left"><code>VMULFXP</code></td>
+<td align="left"><span class="math"><em>V</em></span> (subject to change)</td>
+</tr>
+<tr class="odd">
+<td align="left">Signed</td>
+<td align="left"><code>VMULFXP</code></td>
+<td align="left"><span class="math"><em>V</em> † </span> (subject to change)</td>
+</tr>
+<tr class="even">
+<td align="left">Either</td>
+<td align="left"><code>VROTL</code></td>
+<td align="left"><span class="math"><em>F</em><sub><em>B</em></sub></span> (i.e., copy from source B)</td>
+</tr>
+<tr class="odd">
+<td align="left">Either</td>
+<td align="left"><code>VROTR</code></td>
+<td align="left"><span class="math"><em>F</em><sub><em>B</em></sub></span> (i.e., copy from source B)</td>
+</tr>
+<tr class="even">
+<td align="left">Either</td>
+<td align="left"><code>VMOV</code></td>
+<td align="left"><span class="math"><em>F</em><sub><em>A</em></sub></span> (i.e., copy from source A)</td>
+</tr>
+<tr class="odd">
+<td align="left">Either</td>
+<td align="left"><code>VCMV_*</code></td>
+<td align="left"><span class="math"><em>F</em><sub><em>A</em></sub></span> (if predicate B is true, else unchanged)</td>
+</tr>
+<tr class="even">
+<td align="left">Either</td>
+<td align="left"><code>VAND</code></td>
+<td align="left"><span class="math"><em>F</em><sub><em>A</em></sub></span> &amp; <span class="math"><em>F</em><sub><em>B</em></sub></span></td>
+</tr>
+<tr class="odd">
+<td align="left">Either</td>
+<td align="left"><code>VXOR</code></td>
+<td align="left"><span class="math"><em>F</em><sub><em>A</em></sub></span> <span class="math"> ⊕ </span> <span class="math"><em>F</em><sub><em>B</em></sub></span></td>
+</tr>
+<tr class="even">
+<td align="left">Either</td>
+<td align="left"><code>VOR</code></td>
+<td align="left"><span class="math"><em>F</em><sub><em>A</em></sub></span> <span class="math">∣</span> <span class="math"><em>F</em><sub><em>B</em></sub></span></td>
+</tr>
+<tr class="odd">
+<td align="left">Either</td>
+<td align="left"><code>VABSDIFF</code></td>
+<td align="left"><span class="math">0</span> (subject to change)</td>
+</tr>
+<tr class="even">
+<td align="left">Either</td>
+<td align="left">any <code>vbx_dma_to_vector()</code></td>
+<td align="left"><span class="math">0</span></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Key: <span class="math"><em>C</em></span> carry-out <span class="math"><em>B</em></span> borrow <span class="math"><em>R</em></span> rounding bit is located one rank position lower than the LSB of the final result <span class="math"><em>V</em></span> overflow; for left-shift and multiply-low, set if any bits of significance are lost <span class="math"> † </span> sign preserving; sets the MSB to the sign of the internal full precision result <span class="math"><em>F</em><sub><em>A</em></sub></span> flag of source operand A <span class="math"><em>F</em><sub><em>B</em></sub></span> flag of source operand B</p>
+</blockquote>
+<p>Any operation which includes an <strong>accumulate</strong> will have its flag set to the accumulation overflow value. Accumulation, regardless of operand sizes, happens internally with 40 bits of precision. The overflow flag is set to 1 if the final 40-bit internal accumulator value has any bits of significance that do not fit in the 32-bit instruction result. Additionally, 32-bit signed accumulates are sign preserving: the MSB of the result is set to the MSB of the 40-bit internal accumulator. 16-bit and 8-bit signed accumulates are truncated from the 32-bit value (the sign preservation is lost), so when saturating a signed accumulate operation an output precision of 32-bits must be used. Because the 40-bit internal accumulator itself can overflow, when checking for accumulation overflow on 32-bit inputs it is recommended to break the accumulation in to chunks of size 256 or less (as 256 32-bit inputs cannot overflow a 40-bit accumulator) and check for overflow on each chunk.</p>
+<p>Overflow under a left shift operation requires some explanation. An unsigned <code>VSHL</code> produces an overflow if any of the bits shifted out are set. Likewise, a signed <code>VSHL</code> produces an overflow if an originally positive value shifts out any set bits, or if an originally negative value shifts out any cleared bits.</p>
+<p>Operations which include a datasize conversion operate as follows. In an up-conversion (expansion), any vector source operands are first extended to the wider size before applying the operator. Scalar and enumerated operands are not truncated to the input width, but rather the wider of the two widths. In a down-conversion (truncation), the operation is done on the wider datasize and the final result is truncated. In both cases, the flag is derived from the wide result according to the operation performed.</p>
+<h3 id="operations-using-flag-state"><span class="header-section-number">2.4.2</span> Operations using Flag State</h3>
+<p>The flag is used by the following instructions:</p>
+<ul>
+<li><p>The <code>VADDC</code> instruction treats the flag as a carry-in bit, adding it to the addend</p></li>
+<li><p>The <code>VSUBB</code> instruction treats the flag as a borrow bit, subtracting it from the minuend (left operand)</p></li>
+<li><p>The <code>VCMV_LTZ</code>, <code>VCMV_LEZ</code>, <code>VCMV_GTZ</code>, and <code>VCMV_GEZ</code> instructions use the flag to properly correct for overflow (signed) and carry/borrow (unsigned) conditions</p></li>
+</ul>
+<p>Conditional move predicates are computed according to</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Sign specifier</th>
+<th align="left">Instruction</th>
+<th align="left">Predicate expression</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Unsigned</td>
+<td align="left"><code>VCMV_FS</code></td>
+<td align="left"><span class="math"><em>F</em></span></td>
+</tr>
+<tr class="even">
+<td align="left">Unsigned</td>
+<td align="left"><code>VCMV_FC</code></td>
+<td align="left"><span class="math">¬<em>F</em></span></td>
+</tr>
+<tr class="odd">
+<td align="left">Signed</td>
+<td align="left"><code>VCMV_FS</code></td>
+<td align="left"><em>undefined</em></td>
+</tr>
+<tr class="even">
+<td align="left">Signed</td>
+<td align="left"><code>VCMV_FC</code></td>
+<td align="left"><em>undefined</em></td>
+</tr>
+<tr class="odd">
+<td align="left">Unsigned</td>
+<td align="left"><code>VCMV_LTZ</code></td>
+<td align="left"><span class="math"><em>F</em></span></td>
+</tr>
+<tr class="even">
+<td align="left">Unsigned</td>
+<td align="left"><code>VCMV_GEZ</code></td>
+<td align="left"><span class="math">¬</span> <span class="math"><em>F</em></span></td>
+</tr>
+<tr class="odd">
+<td align="left">Unsigned</td>
+<td align="left"><code>VCMV_LEZ</code></td>
+<td align="left"><span class="math"><em>F</em></span> <span class="math">∣</span> <span class="math"><em>Z</em></span></td>
+</tr>
+<tr class="even">
+<td align="left">Unsigned</td>
+<td align="left"><code>VCMV_GTZ</code></td>
+<td align="left"><span class="math">¬</span> ( <span class="math"><em>F</em></span> <span class="math">∣</span> <span class="math"><em>Z</em></span> )</td>
+</tr>
+<tr class="odd">
+<td align="left">Signed</td>
+<td align="left"><code>VCMV_LTZ</code></td>
+<td align="left"><span class="math"><em>F</em></span> <span class="math"> ⊕ </span> <span class="math"><em>N</em></span></td>
+</tr>
+<tr class="even">
+<td align="left">Signed</td>
+<td align="left"><code>VCMV_GEZ</code></td>
+<td align="left"><span class="math">¬</span> (<span class="math"><em>F</em></span> <span class="math"> ⊕ </span> <span class="math"><em>N</em></span>)</td>
+</tr>
+<tr class="odd">
+<td align="left">Signed</td>
+<td align="left"><code>VCMV_LEZ</code></td>
+<td align="left">(<span class="math"><em>F</em></span> ^ <span class="math"><em>N</em></span>) <span class="math"> ⊕ </span> <span class="math"><em>Z</em></span></td>
+</tr>
+<tr class="even">
+<td align="left">Signed</td>
+<td align="left"><code>VCMV_GTZ</code></td>
+<td align="left"><span class="math">¬</span> ( (<span class="math"><em>F</em></span> <span class="math"> ⊕ </span> <span class="math"><em>N</em></span>) <span class="math">∣</span> <span class="math"><em>Z</em></span>)</td>
+</tr>
+<tr class="odd">
+<td align="left">Either</td>
+<td align="left"><code>VCMV_Z</code></td>
+<td align="left"><span class="math"><em>Z</em></span></td>
+</tr>
+<tr class="even">
+<td align="left">Either</td>
+<td align="left"><code>VCMV_NZ</code></td>
+<td align="left"><span class="math">¬<em>Z</em></span></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Key: <span class="math"><em>Z</em></span> indicates all bits of the element (excluding the flag) are zero <span class="math"><em>N</em></span> is the MSB of the element <span class="math"><em>F</em></span> is the flag value of the element The predicate expression depends only upon source operand B.</p>
+</blockquote>
+<h3 id="flag-examples"><span class="header-section-number">2.4.3</span> Flag Examples</h3>
+<p>Understanding operation of the flags and conditional move can be helped by examples. For example, the following code fragment saturates values in a vector to +100:</p>
+<pre class="sourceCode c"><code class="sourceCode c">vbx( SVB, VSUB,     v_sub, <span class="dv">100</span>, v_val );
+vbx( SVB, VCMV_LTZ, v_val, <span class="dv">100</span>, v_sub );</code></pre>
+<p>These instructions can be read as:</p>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="kw">for</span>( i=<span class="dv">0</span>; i&lt;vl; i++ ){
+  v_sub[i] = <span class="dv">100</span> - v_val[i];
+}
+<span class="kw">for</span>( i=<span class="dv">0</span>; i&lt;vl; i++ ){
+  <span class="kw">if</span>( v_sub[i] &lt; <span class="dv">0</span> ){
+    v_val[i] = <span class="dv">100</span>;
+  }
+}</code></pre>
+<p>Keep in mind that the predicate expression in the <code>if( ... )</code> also uses the flags stored in the <code>v_sub</code> array. Note the precise <code>mode</code> (type, datasize and sign specifiers) must match between the <code>VSUB</code> which computes the flags and the <code>VCMV</code> which uses the flags.</p>
+<p>Another example takes two vectors and produces one vector with the smaller (minimum values) and another vector with the larger (maximum) values:</p>
+<pre class="sourceCode c"><code class="sourceCode c">vbx( VVBU, VMOV,     v_tmp,  v_min,     <span class="dv">0</span> );
+vbx( VVBU, VSUB,     v_sub,  v_max, v_min );
+vbx( VVBU, VCMV_LTZ, v_min,  v_max, v_sub );
+vbx( VVBU, VCMV_LTZ, v_max,  v_tmp, v_sub );</code></pre>
+<p>These instructions can be read as:</p>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="kw">for</span>( i=<span class="dv">0</span>; i&lt;vl; i++ ) v_tmp[i] = v_min[i];
+<span class="kw">for</span>( i=<span class="dv">0</span>; i&lt;vl; i++ ) v_sub[i] = v_max[i] - v_min[i];
+<span class="kw">for</span>( i=<span class="dv">0</span>; i&lt;vl; i++ ) <span class="kw">if</span>( v_sub[i] &lt; <span class="dv">0</span> ) v_min[i] = v_max[i];
+<span class="kw">for</span>( i=<span class="dv">0</span>; i&lt;vl; i++ ) <span class="kw">if</span>( v_sub[i] &lt; <span class="dv">0</span> ) v_max[i] = v_tmp[i];</code></pre>
+<p>In this example, the same set of flags is used more than once.</p>
+<p>Finally, flags can be combined with accumulated vector instructions <a href="#accumulated_vector_instructions">see accum</a>. The example below counts the number of entries which are smaller than or equal to the saturation threshold of +100:</p>
+<pre class="sourceCode c"><code class="sourceCode c">vbx(     SVB, VSUB,     v_sub,  <span class="dv">100</span>, v_val );
+vbx_acc( SVB, VCMV_GEZ, v_val,    <span class="dv">1</span>, v_sub );</code></pre>
+<p>These instructions can be read as:</p>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="kw">for</span>( i=<span class="dv">0</span>; i&lt;vl; i++ ) v_sub[i] = <span class="dv">100</span> - v_val[i];
+accum=<span class="dv">0</span>;
+<span class="kw">for</span>( i=<span class="dv">0</span>; i&lt;vl; i++ ) <span class="kw">if</span>( v_sub[i] &gt;= <span class="dv">0</span> ) { accum+=<span class="dv">1</span>; }
+v_val[<span class="dv">0</span>] = accum;</code></pre>
+<p>This is a rather advanced example. It works because the scalar value used for all elements in source operand A are only valid (i.e., enabled for accumulation) if the predicate expression is true; a predicate expression of false disables accumulation of that element, effectively adding a value of zero.</p>
+<h2 id="masked_instructions"><span class="header-section-number">2.5</span> Masked Vector Instructions</h2>
+<p>MXP can support an additional data-dependent execution through the use of masked vector instructions. When executing, a masked vector instruction will skip wavefronts that would not cause any data to be written back. A wavefront is one cycle worth of data; on a V4 with a word vector elements 0 to 3 would be one wavefront, elements 4 to 7 another. By skipping unused wavefronts execution time can be shortened, especially if the data to be process is mostly masked off. In contrast to a <a href="#conditional_move_and_flags">conditional move</a> operation, it requires a setup instruction to create the mask that will be used on subsequent instructions. This means masked vector instructions should be used only when the mask is reused multiple times; however, if many instructions are processed and the mask is sparse, the savings from skipping unused wavefronts can be large.</p>
+<p>Masked instructions are disabled when the <code>mask_partitions</code> <a href="#mxp_processor_parameters">parameter</a> is zero. Currently MXP only supports 0 (disabled) or 1 mask partition. Multiple mask partitions are a future enhacement that will allow partial wavefronts to skip independently; for instance, a V4 with two partitions would let lanes 0 and 1 skip to a different place within the vector than lanes 2 and 3. The other parameter controlling masked instructions is the <code>max_masked_vector_length</code>, or MMVL. The MMVL is a limitation on how long a mask vector can be, and is nomally set to be smaller than the full scratchpad depth to save resources. When using masked instructions, the programmer must check that the vector length used to set up the mask is less than the masked vector length.</p>
+<p>Note that masked vector instructions do not support enumerated (<code>SE</code>/<code>VE</code>) modes. If an enumerated operand is needed in a masked instruction, an enumerated vector must be created in scratchpad using a non-masked instruction and then used in a vector (<code>SV</code>/<code>VV</code>) mode masked instruction.</p>
+<p>To use a masked vector instruction, first the mask must be set:</p>
+<pre class="sourceCode c"><code class="sourceCode c">vbx_setup_mask( mode, mask_test, src );</code></pre>
+<p><code>mode</code> is the same as for other operations, selecting the datasize and if the test is signed or unsigned. <code>mask_test</code> is one of the <code>VCMV_*</code> tests (see <a href="#conditional_move_and_flags">Conditional Move and Flags</a>). <code>src</code> is the vector to be tested; if the <code>VCMV</code> is true and would write back, that bit is set in the MXP's internal mask state, else it is not set and can be skipped if in a wavefront without any other valid mask bits. This mask is then valid for all subsequent masked instructions until the next <code>vbx_mask_setup()</code> instruction is issued.</p>
+<p>Masked instructions take the form:</p>
+<pre class="sourceCode c"><code class="sourceCode c">vbx_masked( mode, instr, dest, srcA, srcB );</code></pre>
+<p>They execute the same as normal instructions, except they do not write to elements that were masked off in the last <code>vbx_setup_mask()</code> instruction, and will skip any wavefront with no valid elements. If a mask is currently being used and it is desirable to do a <code>vbx_setup_mask()</code> test on only the subset of elements that are currently valid, the programmer can do a masked setup instruction:</p>
+<pre class="sourceCode c"><code class="sourceCode c">vbx_setup_mask_masked( mode, mask_test, src );</code></pre>
+<h3 id="masked-instruction-example"><span class="header-section-number">2.5.1</span> Masked Instruction Example</h3>
+<p>The following shows an example where all non-zero elements in a vector are incremented then multiplied by three. This could be done with conditional move instructions by performing the increment and multiply in a temporary vector then writing the result back using the conditional move instruction. The masked version, by contrast, does not require a temporary vector and will execute in fewer cycles if the data is mostly zero.</p>
+<pre class="sourceCode c"><code class="sourceCode c">vbx_setup_mask( SVW, VCMV_NZ, v_a);
+vbx_masked( SVW, VADD, v_a, <span class="dv">1</span>, v_a );
+vbx_masked( SVW, VMUL, v_a, <span class="dv">3</span>, v_a );</code></pre>
+<h3 id="mask-status-register"><span class="header-section-number">2.5.2</span> Mask Status Register</h3>
+<p>A mask status register is available to allow the programmer to check if the entire mask is empty, in which case all wavefronts are skipped. In this case execution will still proceed correctly, but since nothing is written back it may be faster to check if the mask is empty and then not dispatch the masked vector instructions at all. The mask status register is accesed via the function:</p>
+<pre class="sourceCode c"><code class="sourceCode c">vbx_get_mask_status(<span class="dt">int</span> *mask_status);</code></pre>
+<p>Getting the mask status is non-blocking; if bit 31 is '1' then the result is invalid. Reading the mask status sets bit 31 to be invalid again. Bit 31 is cleared when a <code>vbx_setup_mask()</code> or <code>vbx_setup_mask_masked()</code> completes within the vector pipeline. Bits 30 to 0 return the mask status; if they are all '0' then the mask is empty. Currently any nonzero value only means the mask is not empty, but different return values are reserved for future use.</p>
+<p>Though the call is non-blocking, it is simpler and easier to use in a blocking manner. One way is to preface the call with a <code>vbx_sync()</code> instruction to make sure all mask setup instructions have finished. The following example shifts every element of <code>v_a</code> left by 1 bit until the MSB of the element is a '0'.</p>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="dt">int</span> mask_status;
+
+<span class="co">//First iteration, before mask has been setup</span>
+vbx( SVW, VAND, v_flag, <span class="bn">0x80000000</span>, v_a );
+vbx_setup_mask( SVW, VCMV_NZ, v_a );
+vbx_masked( SVW, VSHL, v_a, <span class="dv">1</span>, v_a );
+vbx_sync();
+vbx_get_mask_status( &amp;mask_status );
+
+<span class="co">//if mask_status is 0, the mask is empty and we are done</span>
+<span class="kw">while</span>( mask_status ){
+  vbx_masked( SVW, VAND, v_flag, <span class="bn">0x80000000</span>, v_a );
+  vbx_setup_mask_masked( SVW, VCMV_NZ, v_a );
+  vbx_masked( SVW, VSHL, v_a,             <span class="dv">1</span>, v_a );
+
+  vbx_sync();
+  vbx_get_mask_status( &amp;mask_status );
+}</code></pre>
+<p>Alternately, the code can poll on the invalid bit of the mask status register (bit 31) to check if the result is valid:</p>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="dt">int</span> mask_status;
+
+<span class="co">//Set the mask status to invalid;</span>
+<span class="co">//Can be skipped if it&#39;s already known to be invalid</span>
+vbx_sync();
+vbx_get_mask_status( &amp;mask_status );
+
+<span class="co">//First iteration, before mask has been setup</span>
+vbx( SVW, VAND, v_flag, <span class="bn">0x80000000</span>, v_a );
+vbx_setup_mask( SVW, VCMV_NZ, v_a );
+vbx_masked( SVW, VSHL, v_a, <span class="dv">1</span>, v_a );
+<span class="co">//Spin until mask_status bit 31 is &#39;0&#39; (mask_status is valid)</span>
+<span class="kw">do</span> {
+  vbx_get_mask_status( &amp;mask_status );
+} <span class="kw">while</span> ( mask_status &amp; <span class="bn">0x80000000</span> );
+
+<span class="kw">while</span> ( mask_status ) {
+  vbx_masked( SVW, VAND, v_flag, <span class="bn">0x80000000</span>, v_a );
+  vbx_setup_mask_masked( SVW, VCMV_NZ, v_a );
+  vbx_masked( SVW, VSHL, v_a,             <span class="dv">1</span>, v_a );
+
+  <span class="co">//Spin until mask_status bit 31 is &#39;0&#39; (mask_status is valid)</span>
+  <span class="kw">do</span> {
+    vbx_get_mask_status( &amp;mask_status );
+  } <span class="kw">while</span> ( mask_status &amp; <span class="bn">0x80000000</span> );
+}</code></pre>
+<p>The main difference between this version and the previous version is that the <code>vbx_sync()</code> call forces the scalar core to stall until ALL previous vector instructions have finished, whereas polling on the mask status register just requires waiting until the last mask setup instruction has finished. This means that when the do-while loop finishes on the scalar core, the previous <code>vbx_masked()</code> instruction may be executing on the vector core.</p>
+<p>A further optimization is to use the mask status register in a non-blocking manner. Whether or not we use the mask status register to skip an iteration does not affect the functionality of the program; if we don't skip an iteration when the mask is empty all masked operations will effectively be NOPs. So instead of waiting for the current mask setup instruction to finish, we can just check the status of the last mask setup instruction to have finished within the vector core. Once the scalar core sees that the mask is empty it can exit the loop. It may have dispatched additional masked instructions, but they will have no effect since the mask will be empty when they execute and so nothing will be written back.</p>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="dt">int</span> mask_status;
+
+<span class="co">//Set the mask status to invalid;</span>
+<span class="co">//Can be skipped if it&#39;s already known to be invalid</span>
+vbx_sync();
+vbx_get_mask_status( &amp;mask_status );
+
+<span class="co">//First iteration, before mask has been setup</span>
+vbx( SVW, VAND, v_flag, <span class="bn">0x80000000</span>, v_a );
+vbx_setup_mask( SVW, VCMV_NZ, v_a );
+vbx_masked( SVW, VSHL, v_a, <span class="dv">1</span>, v_a );
+vbx_get_mask_status( &amp;mask_status );
+
+<span class="kw">while</span> ( mask_status ) {
+  vbx_masked( SVW, VAND, v_flag, <span class="bn">0x80000000</span>, v_a );
+  vbx_setup_mask_masked( SVW, VCMV_NZ, v_a );
+  vbx_masked( SVW, VSHL, v_a,             <span class="dv">1</span>, v_a );
+
+  <span class="co">//Get the latest mask status available</span>
+  vbx_get_mask_status( &amp;mask_status );
+}</code></pre>
+<h2 id="cxx_basic_vector_instructions"><span class="header-section-number">2.6</span> C++ Equivalent Instructions</h2>
+<p>Vectorblox additionally provides the following c++ functions that simplify programming by inferring type data from the operands used:</p>
+<pre class="sourceCode c"><code class="sourceCode c">    vbxx(instr,dest,srcA,srcB);
+
+    vbxx_acc(instr,dest,srcA,srcB);
+
+    vbxx_2D(instr,dest,srcA,srcB);
+
+    vbxx_acc_2D(instr,dest,srcA,srcB);
+
+    vbxx_3D(instr,dest,srcA,srcB);
+
+    vbxx_acc_3D(instr,dest,srcA,srcB);</code></pre>
+<h3 id="example"><span class="header-section-number">2.6.1</span> Example</h3>
+<pre class="sourceCode c"><code class="sourceCode c"> <span class="co">//This function adds two vectors in the c manner</span>
+ <span class="dt">void</span> add_c(){
+     vbx_word_t* va=vbx_sp_malloc(<span class="dv">100</span>);
+     vbx_word_t* vb=vbx_sp_malloc(<span class="dv">100</span>);
+     bx_word_t* vc=vbx_sp_malloc(<span class="dv">100</span>);
+     <span class="co">//add va to vb, and store in vc</span>
+     vbx(VVWS,VADD,vc,va,vb);
+ }
+
+ <span class="co">//This function adds two vectors in the c++ manner</span>
+ <span class="dt">void</span> add_cxx(){
+     vbx_word_t* va=vbx_sp_malloc(<span class="dv">100</span>);
+     vbx_word_t* vb=vbx_sp_malloc(<span class="dv">100</span>);
+     vbx_word_t* vc=vbx_sp_malloc(<span class="dv">100</span>);
+     <span class="co">//add va to vb, and store in vc</span>
+     vbxx(VADD,vc,va,vb);
+ }</code></pre>
+<p>These c++ functions provide the same functionality as their C equivalents, but without the need to provide a mode parameter. Another thing to note is that the move instruction no longer needs the srcB parameter, it is just <code>vbxx(VMOV,dest,srcA)</code></p>
+<h1 id="vbx_api"><span class="header-section-number">3</span> VBX API Library</h1>
+<p>The VBX API consists of a number of basic calls which are described in this section. However, it is important to note that many of these API calls require initialization. This initialization is done by a call to the <code>_vbx_init()</code> function, which is normally called automatically as part of the pre-initialization process before <code>main()</code> is started. (Calling this function more than once is not encouraged, as it may lead to an inconsistent state.)</p>
+<h2 id="specifying_vector_and_matrix_sizes"><span class="header-section-number">3.1</span> Specifying Vector and Matrix Sizes</h2>
+<p>The APIs to set or retrieve vector and matrix sizes are:</p>
+<pre class="sourceCode c"><code class="sourceCode c">vbx_set_vl( vl );
+
+vbx_set_2D( numRows, incDest2, incSrcA2, incSrcB2 );
+
+vbx_set_3D( numMats, incDest3, incSrcA3, incSrcB3 );
+
+vbx_get_vl( &amp;vl );
+
+vbx_get_2D( &amp;numRows, &amp;incDest2, &amp;incSrcA2, &amp;incSrcB2 );
+
+vbx_get_3D( &amp;numMats, &amp;incDest3, &amp;incSrcA3, &amp;incSrcB3 );</code></pre>
+<p>Notes:</p>
+<ul>
+<li><p>For normal vector (i.e., 1D) operations, the <em>unsigned</em> <code>vl</code> parameter to the <code>vbx_set_vl()</code> function specifies the length of a vector in units of elements.</p></li>
+<li><p>For 2D and 3D operations, the <em>signed</em> parameters <code>incDest2</code>, <code>incDest3</code>, <code>incSrcA2</code>, <code>incSrcA3</code>, <code>incSrcB2</code>, and <code>incSrcB3</code> are specified in units of bytes, not elements. These represent the stride, or distance in bytes, between one row to the next row (2D), or between one matrix to the next matrix (3D).</p></li>
+</ul>
+<p>The 2D matrix operations are performed on rows of vectors, where each vector represents one row. The <em>unsigned</em> <code>numRows</code> parameter specifies the number of rows for which the vector operation should be repeated. While a 2D instruction is being executed, the destination initially specified by <code>dest</code> will be incremented by the amount <code>incDest2</code> after each row is completed. Hence, the <code>incDest2</code> value indicates the number of bytes per row in the destination matrix. It is quite common for the vector length (which is specified in units of elements, not bytes), to match the increment amount (after correcting for data size). However, it is also perfectly valid to use a longer or shorter vector length than the increment amount. For example, this behaviour can be used to implement a sliding-window effect, or to operate on a sub-matrix.</p>
+<p>Likewise, after each row, the <code>srcA</code> operand will be internally incremented by the amount <code>incSrcA2</code>, and the <code>srcB</code> will be internally incremented by the amount <code>incSrcB2</code>.</p>
+<p>Note that after the 2D instruction has finished executing, its actual operands, namely <code>dest</code>, <code>srcA</code> and <code>srcB</code>, are left unmodified.</p>
+<p>For example, the following 2D program fragment adds two matrices: An equivalent C program would be:</p>
+<p>1D Vector VBX code:</p>
+<pre class="sourceCode c"><code class="sourceCode c">vbx_half_t *vdest, *vsrc1, *vsrc2;
+vbx_set_vl( vl );
+vbx( VVH, VADD, vdest, vsrc1, vsrc2 );</code></pre>
+<p>Equivalent C code:</p>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="kw">for</span>( c=<span class="dv">0</span>; c &lt; vl; c++ ) {
+    vdest[c] = vsrc1[c] + vsrc2[c];
+}</code></pre>
+<p>2D Matrix VBX code:</p>
+<pre class="sourceCode c"><code class="sourceCode c">    vbx_half_t *vdest, *vsrc1, *vsrc2;
+    vbx_set_vl( vl );
+    vbx_set_2D( numRows, iD2, iA2, iB2 );
+    vbx_2D( VVH, VADD, vdest, vsrc1, vsrc2 );</code></pre>
+<p>Equivalent C code:</p>
+<pre class="sourceCode c"><code class="sourceCode c">vbx_half_t *dest, *srcA, *srcB;
+<span class="kw">for</span>( r = <span class="dv">0</span>; r &lt; numRows; r++ ) {
+    dest = (vbx_half_t*)( (vbx_byte_t*)vdest + (r*iD2) );
+    srcA = (vbx_half_t*)( (vbx_byte_t*)vsrc1 + (r*iA2) );
+    srcB = (vbx_half_t*)( (vbx_byte_t*)vsrc2 + (r*iB2) );
+    <span class="kw">for</span>( c=<span class="dv">0</span>; c &lt; vl; c++ ) {
+        dest[c] = srcA[c] + srcB[c];
+    }
+}</code></pre>
+<p>3D Matrix VBX code:</p>
+<pre class="sourceCode c"><code class="sourceCode c">vbx_half_t *vdest, *vsrc1, *vsrc2;
+vbx_set_vl( vl );
+vbx_set_2D( numRows, iD2, iA2, iB2 );
+vbx_set_3D( numMats, iD3, iA3, iB3 );
+vbx_3D( VVH, VADD, vdest, vsrc1, vsrc2 );</code></pre>
+<p>Equivalent C code:</p>
+<pre class="sourceCode c"><code class="sourceCode c">vbx_half_t *dest, *srcA, *srcB;
+<span class="kw">for</span>( m = <span class="dv">0</span>; m &lt; numMats; m++ ) {
+    <span class="kw">for</span>( r = <span class="dv">0</span>; r &lt; numRows; r++ ) {
+        dest = (vbx_half_t*)( (vbx_byte_t*)vdest + (m*iD3) + (r*iD2) );
+        srcA = (vbx_half_t*)( (vbx_byte_t*)vsrc1 + (m*iA3) + (r*iA2) );
+        srcB = (vbx_half_t*)( (vbx_byte_t*)vsrc2 + (m*iB3) + (r*iB2) );
+        <span class="kw">for</span>( c=<span class="dv">0</span>; c &lt; vl; c++ ) {
+            dest[c] = srcA[c] + srcB[c];
+        }
+    }
+}</code></pre>
+<p>Note that it is possible to specify increments of 0, which implies the same vector will be re-used for each row. This allows a vector to be added row-wise to a matrix, for example. Also, negative increments can be used to iterate ‘backwards’ through a matrix, starting with the last row. Finally, unit increments are also possible, providing a sliding-window effect on a vector.</p>
+<p>The 3D matrix operations work exactly like the 2D operations, but the increment amounts are added after each 2D matrix is completed.</p>
+<p>In all cases, the original operands are left unmodified; all incrementing takes place in internal registers of the MXP CPU.</p>
+<p>The <code>get</code> functions allow the programmer to query the current set of parameters from the hardware. These are used in subroutines which need to transparently save (<code>get</code>) and restore (<code>set</code>) these parameters without disturbing the caller. In all cases, a pointer to an integer is passed for each argument of the <code>get</code> routines.</p>
+<h2 id="dma-operations"><span class="header-section-number">3.2</span> DMA Operations</h2>
+<p>The DMA operation APIs are:</p>
+<pre class="sourceCode c"><code class="sourceCode c">vbx_dma_to_host( hostPtr, scratchPtr, numBytes );
+
+vbx_dma_to_vector( scratchPtr, hostPtr, numBytes );
+
+vbx_dma_to_host_2D( hostPtr, scratchPtr, rowLengthBytes, numRows,
+                    hostInc, scratchInc );
+
+vbx_dma_to_vector_2D( scratchPtr, hostPtr, rowLengthBytes, numRows,
+                      scratchInc, hostInc );
+
+vbx_sync();</code></pre>
+<p>These operations initiate a hardware-accelerated block asynchronous copy operation from the scratchpad to the host, or from the host memory to the scratchpad. DMA operations from scratchpad to scratchpad or from host memory to host memory are not supported.</p>
+<p>DMA operations issue in program order, and are placed into a 2-entry DMA queue. If the queue is currently full while a DMA operation is trying to issue, the processor will stall until the current DMA operation finishes. Once placed into the queue, the vector processor core resumes executing vector instructions concurrently. In the case where a vector instruction has a data race hazard with an enqueued DMA operation, the vector processor will stall. By moving DMA operations as early as possible in the code, stalling can be avoided. Please see the section on <a href="#vbx_hazards">hazards</a> for more information on data race hazards between DMA operations and vector instructions, and on the use of the <code>vbx_sync()</code> function.</p>
+<p>For repeated DMA operations on regular data, such as loading on storing a sub-matrix, the 2D DMA operations can be used. These function similar to <a href="#vbx_2d_3d_instructions">2D instructions</a>, issuing repeated DMA operations with a source and destination increment between each. 2D DMA operations are faster than issuing repeated 1D DMA operations and only take one entry in the DMA queue, so they are preferred where possible.</p>
+<p>2D DMA operation:</p>
+<pre class="sourceCode c"><code class="sourceCode c">vbx_byte_t *vdest, *src;
+vbx_dma_to_vector_2D( vdest, src, rowLengthBytes, numRows, scratchInc, hostInc );</code></pre>
+<p>Equivalent C code:</p>
+<pre class="sourceCode c"><code class="sourceCode c">vbx_byte_t *vdest, *src;
+<span class="kw">for</span>( r = <span class="dv">0</span>; r &lt; numRows; r++ ) {
+    <span class="kw">for</span>( c = <span class="dv">0</span>; c &lt; vl; c++ ) {
+        vdest[c + (r*scratchInc)] = src[c + (r*hostInc)];
+    }
+}</code></pre>
+<h2 id="scratchpad_management"><span class="header-section-number">3.3</span> Scratchpad Management</h2>
+<p>The scratchpad management APIs are:</p>
+<pre class="sourceCode c"><code class="sourceCode c">vbx_sp_malloc( numBytes );
+
+vbx_sp_free();
+
+vbx_sp_push();
+
+vbx_sp_pop();
+
+vbx_sp_get();
+
+vbx_sp_set( newSP );</code></pre>
+<p>The scratchpad is used like a stack, similar to a subroutine allocating and de-allocating memory from the scratchpad as needed. These functions are used to manage allocation and deallocation from the scratchpad. The functions are intended to execute quickly, hence the stack-like model (to avoid garbage collection and fragmentation issues).</p>
+<p>The <code>vbx_sp_malloc()</code> function returns a pointer to the scratchpad after allocating <code>numBytes</code> of storage. A null pointer is returned if there is not enough space.</p>
+<p>The <code>vbx_sp_free()</code> function frees <strong>all allocations</strong> from the scratchpad. Use it like a master reset switch!</p>
+<p>You cannot de-allocate individual calls to <code>vbx_sp_malloc()</code>. Instead, the current position of the scratchpad pointer can be saved onto a stack using the <code>vbx_sp_push()</code> function. The scratchpad pointer keeps track of the current high-water mark of scratchpad allocations. To restore the current position of the scratchpad pointer, use <code>vbx_sp_pop()</code>.</p>
+<p>The recommended use of <code>vbx_sp_push()</code> and <code>vbx_sp_pop()</code> are at the beginning and end of a subroutine, respectively. This will deallocate all of the <code>vbx_sp_malloc()</code> calls made in the subroutine. The recommended way of ‘returning a value’ in the scratchpad is to have the caller reserve the space in advance.</p>
+<p>The scratchpad pointer can be explicitly manipulated using the <code>vbx_sp_set()</code> and <code>vbx_sp_get()</code> functions. The purpose of these is for users to provide a more advanced scratchpad memory management feature set, e.g. similar to a traditional malloc.</p>
+<h2 id="memory_management"><span class="header-section-number">3.4</span> Memory Management</h2>
+<p>The memory management APIs are:</p>
+<pre class="sourceCode c"><code class="sourceCode c">vbx_shared_alloca( numBytes );
+
+vbx_shared_malloc( numBytes );
+
+vbx_shared_free( ptr );</code></pre>
+<p>The <code>vbx_shared_alloca()</code> call will allocate vector storage on the local call stack, similar to the gcc <code>alloca()</code> function. Upon return from the current function, all storage allocated with <code>alloca()</code> is automatically freed.</p>
+<p>The <code>vbx_shared_malloc()</code> call will allocate vector storage on the heap, similar to the C library <code>malloc()</code> function. Each block of memory allocated with this function <strong>must</strong> be freed using <code>vbx_shared_free()</code>.</p>
+<p>Internally, both of these memory allocation functions will reserve a chunk of memory that is slightly larger than what is requested in order to accommodate padding requirements of the DMA engine and to store memory management information. Also, the pointer returned by these functions is always marked <em>uncached</em> to avoid data consistency problems with the MXP vector engine.</p>
+<p>If a large amount of scalar operations must be performed on this region, it may be worthwhile to obtain a <em>cached</em> pointer, and then flush the data cache before passing control to the MXP vector engine. To do this, use the <code>vbx_remap_cached()</code> and <code>vbx_remap_uncached()</code> operations.</p>
+<h2 id="global_macros"><span class="header-section-number">3.5</span> Global Macros</h2>
+<p>The following global macros can be set to control the VBX API software library system:</p>
+<ul>
+<li><p><code>VBX_SKIP_ALL_CHECKS</code> set to 1 for high-performance code with minimal safety or bounds checks</p></li>
+<li><p><code>VBX_DEBUG_LEVEL</code> set to 0 for quiet, 1 or 2 for verbose debug printing</p></li>
+</ul>
+<h1 id="vector-expressions"><span class="header-section-number">4</span> Vector Expressions</h1>
+<p>A Vector is a complex type defined in <code>Vector.hpp</code> that allows us to use simple operators to manipulate vectors. This provides an interface that is cleaner to read and easier to develop with.</p>
+<h2 id="declaration"><span class="header-section-number">4.1</span> Declaration</h2>
+<p>The standard constructor has the signature <code>template&lt;typename T&gt; Vector&lt;T&gt;(size_t length);</code> The Vector is allocated with <code>length</code> space on the scratchpad. This length is constant and cannot be changed after construction.</p>
+<p>It is sometimes necessary to create a vector using space previously allocated on the scratchpad, for this reason there is an additional constructor: <code>template&lt;typename T&gt; Vector&lt;T&gt;(T* ptr,size_t length);</code>. That constructor creates a Vector using <em>length</em> elements starting at at the address <em>ptr</em> in the scratchpad.</p>
+<h2 id="vector-expressions-1"><span class="header-section-number">4.2</span> Vector Expressions</h2>
+<p>A Vector expression is composed of operators linking combinations of Vectors, Enumerated types, and scalars. Using the operations detailed below, we can create expressions like <code>va=vb&gt;&gt;2 * VBX::ENUM</code> or <code>vc.cond_mov(va&lt;ab,4-vd)</code>.</p>
+<h2 id="operators"><span class="header-section-number">4.3</span> Operators</h2>
+<h3 id="arithmetic-operators"><span class="header-section-number">4.3.1</span> Arithmetic operators</h3>
+<p>The following element-wise operators are defined for Vectors:</p>
+<table>
+<thead>
+<tr class="header">
+<th align="center">Operator</th>
+<th align="left">Description</th>
+<th align="left">Analogous instruction</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="center"><code>a+b</code></td>
+<td align="left">Addition</td>
+<td align="left"><code>VADD</code></td>
+</tr>
+<tr class="even">
+<td align="center"><code>a-b</code></td>
+<td align="left">Subtraction</td>
+<td align="left"><code>VSUB</code></td>
+</tr>
+<tr class="odd">
+<td align="center"><code>absdiff(a,b)</code></td>
+<td align="left">Absolute difference</td>
+<td align="left"><code>VABSDIFF</code></td>
+</tr>
+<tr class="even">
+<td align="center"><code>a*b</code></td>
+<td align="left">Multiplication</td>
+<td align="left"><code>VMUL</code></td>
+</tr>
+<tr class="odd">
+<td align="center"><code>mulfxp(a,b)</code></td>
+<td align="left">Fixed point multiplication</td>
+<td align="left"><code>VMULFXP</code></td>
+</tr>
+<tr class="even">
+<td align="center"><code>mulhi(a,b)</code></td>
+<td align="left">High bits of a multiply</td>
+<td align="left"><code>VMULHI</code></td>
+</tr>
+<tr class="odd">
+<td align="center"><code>a^b</code></td>
+<td align="left">Bit-wise exclusive or</td>
+<td align="left"><code>VXOR</code></td>
+</tr>
+<tr class="even">
+<td align="center"><code>a&amp;b</code></td>
+<td align="left">Bit-wise and</td>
+<td align="left"><code>VAND</code></td>
+</tr>
+<tr class="odd">
+<td align="center"><code>a|b</code></td>
+<td align="left">Bit-wise or</td>
+<td align="left"><code>VOR</code></td>
+</tr>
+<tr class="even">
+<td align="center"><code>a&lt;&lt;b</code></td>
+<td align="left">Shift right operator</td>
+<td align="left"><code>VSHL</code></td>
+</tr>
+<tr class="odd">
+<td align="center"><code>a&gt;&gt;b</code></td>
+<td align="left">Shift left operator</td>
+<td align="left"><code>VSHR</code></td>
+</tr>
+<tr class="even">
+<td align="center"><code>a&lt;b</code></td>
+<td align="left">Less than comparison</td>
+<td align="left"><code>VSUB</code>,<code>VCMV_LT</code></td>
+</tr>
+<tr class="odd">
+<td align="center"><code>a&gt;b</code></td>
+<td align="left">Greater than comparison</td>
+<td align="left"><code>VSUB</code>,<code>VCMV_GT</code></td>
+</tr>
+<tr class="even">
+<td align="center"><code>a&lt;=b</code></td>
+<td align="left">Less than or equal comparison</td>
+<td align="left"><code>VSUB</code>,<code>VCMV_LEZ</code></td>
+</tr>
+<tr class="odd">
+<td align="center"><code>a&gt;=b</code></td>
+<td align="left">Greater than or equal comparison</td>
+<td align="left"><code>VSUB</code>,<code>VCMV_GEZ</code></td>
+</tr>
+<tr class="even">
+<td align="center"><code>a==b</code></td>
+<td align="left">Equality comparison</td>
+<td align="left"><code>VSUB</code>,<code>VCMV_Z</code></td>
+</tr>
+<tr class="odd">
+<td align="center"><code>a!=b</code></td>
+<td align="left">Inequality comparison</td>
+<td align="left"><code>VSUB</code>,<code>VCMV_NZ</code></td>
+</tr>
+</tbody>
+</table>
+<p>Because it is inefficient from a hardware standpoint,the following operations are not supported:</p>
+<ul>
+<li><p>Scalar shift by a vector: <code>5 &gt;&gt; va</code> or <code>5 &lt;&lt; va</code></p></li>
+<li><p>Vector shifted by an enum: <code>va &gt;&gt; ENUM</code> or <code>va &lt;&lt; ENUM</code></p></li>
+<li><p>A Vector subtracted from an enum: <code>ENUM - va</code></p></li>
+</ul>
+<h3 id="logical-operators"><span class="header-section-number">4.3.2</span> Logical Operators</h3>
+<p>In addition to the above arithmetic operator the logical operators <code>||</code> or <code>&amp;&amp;</code> and <code>!</code> are defined. Which allow combining comparison operators. <code>||</code> and <code>&amp;&amp;</code> usually take 3 instructions to to resolve, but <code>!</code> can usually be resolved without any additional instructions.</p>
+<h2 id="type-conversion"><span class="header-section-number">4.4</span> Type Conversion</h2>
+<p>When using one of the above operators care must be made to ensure that types of the 2 Vector operands match. For instance a <code>Vector&lt;vbx_word_t&gt;</code> cannot be added to a <code>Vector&lt;vbx_uword_t&gt;</code> without first casting it to one of the operands to the type of the other using the <code>.cast&lt;TYPE&gt;()</code> member function.</p>
+<p>An Operation inherits the type of it operands, so a the expression <code>va+ENUM</code> would be a binary operator with the same type as <code>va</code>. Binary operators can also be cast using the same member function. so if <code>vb</code> is a <code>Vector&lt;vbx_word_t&gt;</code> and <code>vc</code> is a <code>Vector&lt;vbx_half_t&gt;</code> the following expression is valid <code>vb + (vc * 3).cast&lt;vbx_word_t&gt;()</code> but the expression <code>vb + (vc * 3)</code> is not valid because the type of <code>vb</code> does not match the type of the binary operation <code>vc * 3</code>.</p>
+<p>It is important to note that a the destination of an expression (The Vector that the expression is being assigned to) does not have to match. So using the same vectors <code>vb</code> and <code>vc</code> the statement <code>vb = vc - 5</code> is valid.</p>
+<h2 id="assignment"><span class="header-section-number">4.5</span> Assignment</h2>
+<p>Vector expressions are evaluated when they are assigned to another Vector, we have two types of assignment; normal and conditional.</p>
+<h3 id="normal-assignment"><span class="header-section-number">4.5.1</span> Normal Assignment</h3>
+<p>Any Vector Expression can be assigned to a vector. The length of the Vector being assigned to is what determines the vector length of the calculations.</p>
+<h3 id="conditional-assignment"><span class="header-section-number">4.5.2</span> Conditional Assignment</h3>
+<p>A conditional assignment take the form <code>dest.cond_move(condition, iftrue)</code>.</p>
+<p>Conditional assignment works mostly the same as regular assignment with the exception that for a given element <code>i</code>, the value <code>iftrue[i]</code> is only moved if <code>condition[i]</code> is true.</p>
+<p>To check if the overflow or carry flag is set, it is possible to use the <code>fs()</code>,<code>fc()</code>,<code>overflow()</code>, and <code>carry()</code> member functions of the vector class. For instance saturating add could be implemented as follows: <code>va = vb+20; va.cond_move(va.overflow(),255);</code></p>
+<p><strong>Note about comparisons</strong></p>
+<p>It is important to note that the comparison operators do not resolve to 1 or 0 like a regular c/c++ comparison, rather they resolve to the difference between a and b, an a state variable that remembers what type of comparison it was last used. This state variable is reset to <code>VCMV_NZ</code> if any other operation is done to that vector.</p>
+<p><em>For example:</em></p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp">VBX::Vector&lt;vbx_word_t&gt; va(<span class="dv">3</span>),vb(<span class="dv">3</span>),vc(<span class="dv">3</span>);
+va=VBX::ENUM;
+vb=<span class="dv">1</span>;
+vc=va&lt;vb;
+vb.cond_mov(vc,<span class="dv">0</span>);
+<span class="co">//at this point vc will contain -1,0,1 and vb will contain 0,1,1</span>
+<span class="co">//because vc remembers that it is a less than relationship</span></code></pre>
+<p>on the other hand</p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp">VBX::Vector&lt;vbx_word_t&gt; va(<span class="dv">3</span>),vb(<span class="dv">3</span>),vc(<span class="dv">3</span>);
+va=VBX::ENUM;
+vb=<span class="dv">1</span>;
+vc=va&lt;vb;
+vc+=<span class="dv">0</span>;   <span class="co">//&lt;-- note this extra addtion</span>
+vb.cond_mov(vc,<span class="dv">0</span>);
+<span class="co">//at this point vc will contain -1,0,1 and vb will contain 1,0,1</span>
+<span class="co">//because vc no longer remembers that it is a less than relationship,</span>
+<span class="co">//because it&#39;s last operation was an addition</span></code></pre>
+<h2 id="accumulating-vectors"><span class="header-section-number">4.6</span> Accumulating Vectors</h2>
+<p>To accumulate (sum) a vector or expression, use the function <code>accumulate(vexpr expr, size_t len)</code>. The result of that function can be assigned to a <code>VBX::accum&lt;T&gt;</code> where T is an integral type. An <code>VBX::accum&lt;T&gt;</code> is a integer that resides in the scratchpad memory. It can mostly be treated like any other integer, except that the fact that it can be written to by both the vector engine and the scalar engine presents some synchronization issues. Assigning a regular integer to an <code>accum&lt;T&gt;</code> is done in order with other vector operations, not with the scalar CPU instructions. There are two ways of reading the value: <code>async_getval()</code> and <code>sync_getval()</code>. The asynchronous method reads the current value in the memory without waiting for the MXP to finish operations. The synchronous method issues a <code>vbx_sync()</code> instruction before reading the value, which assures that all vector instructions have completed. For convenience there is also a implicit conversion to integer which does a synchronous read.</p>
+<p>Using the array subscript operator with an integer rather than a range (<code>upto</code>) creates a <code>accum&lt;T&gt;</code> for that element. Using this feature it is possible to do an accumulate into an element of a Vector i.e.: <code>va[5]=accumulate(vb);</code></p>
+<h2 id="multi-dimensional-operations"><span class="header-section-number">4.7</span> Multi-Dimensional Operations</h2>
+<p>Two and three dimensional operations can be used to increase code density and provide higher performance in some cases.</p>
+<p>To declare a 2D Vector use the constructor <code>Vector&lt;T,2&gt;(columns,rows,increment)</code>. Where <code>rows</code>and <code>columns</code> are the dimensions of the matrix and <code>increment</code> is the number of elements between two successive rows.</p>
+<p>To declare a 3D Vector use the constructor <code>Vector&lt;T,2&gt;(columns,rows,increment2,matrices,increment3)</code>. Where <code>rows</code>and <code>columns</code> are the dimensions of the matrix, <code>increment2</code> is the number of elements between two successive rows, <code>matrices</code> is the number of matrices and <code>increment3</code> is the number of elements between successive matrices.</p>
+<p>It is also possible to accumulate a vector into a lower order Vector and combine the result with a vector if that lower vector in the following manner <code>v1d + accumulate( v2d * 4)</code>.</p>
+<p>Note that it is important that <code>v2d</code> has as many rows as <code>v1d</code> has elements so that the dimensions match. The library cannot check for this at compile time. So it is left to the programmer to make sure this happens.</p>
+<p>Rather than declaring a vector as a 2D vector, it is possible to reshape a 1D vector into a 2D Vector using the <code>.to2D(int cols,int rows,ssize_t increment)</code> member function. This member functions creates a temporary Vector that aliases the original vector.</p>
+<p>Using this multi dimensional API it is possible to implement a simple FIR filter in the following manner:</p>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="dt">void</span> fir(<span class="dt">int</span>* output,<span class="dt">int</span>* input,<span class="dt">int</span>* taps, <span class="dt">int</span> sample_size,<span class="dt">int</span> num_taps)
+{
+   Vector&lt;<span class="dt">int</span>&gt; v_out(sample_size-num_taps);
+   Vector&lt;<span class="dt">int</span>&gt; v_in(sample_size);
+   Vector&lt;<span class="dt">int</span>,<span class="dv">2</span>&gt; v_taps(num_taps,num_taps,sample_size,<span class="dv">0</span>);
+   v_in.dma_read(input);
+   v_taps.dma_read(taps);
+   v_out=accumulate(v_in.to2D(num_taps,sample_size-num_taps,<span class="dv">1</span>)*v_taps);
+   v_out.dma_write(output);
+}</code></pre>
+<p><em>Note</em> Neither masked instructions (detailed below) or Logical operators (&amp;&amp;,||) work with 2 or 3 dimensionalq operations.</p>
+<h2 id="vector-slices"><span class="header-section-number">4.8</span> Vector Slices</h2>
+<p>It is possible to work with only a portion of a vector by creating a Slice of a vector. This is done with the <code>[]</code> operator. <code>va[0 upto 15]</code> will create a vector that refers to the first 15 elements of <code>va</code>.</p>
+<p>When dealing with 2D vectors it is possible to refer to a sub-matrix in the following manner <code>v2d[0 upto 15 , 0 upto 5]</code> this creates a vector of the first 15 elements of the first 5 rows.</p>
+<p>No data is copied during any of these operations, it is just viewed differently.</p>
+<h2 id="prefetching-data"><span class="header-section-number">4.9</span> Prefetching Data</h2>
+<p>When working with large data sets, it is necessary to only work with a portion of the data at a time. To get maximum performance it is often desirable to prefetch the next portion of data while working with the current data. This maximizes memory and vector instruction bandwidth. This is known as double buffering data.</p>
+<p>To facilitate this, there exists a class: <code>Prefetcher&lt;T&gt;</code> with the constructor <code>Prefetcher&lt;T&gt;(int num,size_t vec_size,T* start,T* end,unsigned int vec_incr)</code> This constructs an object that lets you work with <code>num</code> vectors of <code>vec_size</code> elements each.</p>
+<p>Using the <code>operator[] (int i)</code> allows you to access the i<sup>th</sup> vector.</p>
+<p>The method <code>fetch()</code> starts a DMA transfer <code>vec_size</code> elements from <code>start+vec_incr * n</code> into the next available vector where n is the number of times you have called the <code>fetch()</code> method. If <code>start+vec_incr * (n+1) &gt; end</code> then only <code>end - (start+vec_incr * n)</code> elements will be transfered, and the vector will be resized to that size as well. This makes the situation where the last dma transfer is smaller than the usual chunk size easier to handle. In the case where all of data betwee <code>start</code> and <code>end</code> has been transfered already, calling <code>fetch()</code> will simply rotate the internal vector list without doing any DMA so that the <code>[]</code> operator behaves as expected.</p>
+<p>The following example takes an image and makes an output image where each row is the sum average of the row above and below it. (each row starts <code>pitch</code> words after the previous)</p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> image_average(vbx_word_t* out_img, vbx_word_t* in_img, <span class="dt">int</span> rows,<span class="dt">int</span> cols,<span class="dt">int</span> pitch)
+{
+    VBX::Prefetcher&lt;vbx_word_t&gt; in_rows(<span class="dv">3</span>,cols,in_img,in_img+rows*pitch,pitch);
+    <span class="co">//fetch first three rows</span>
+    in_rows.fetch();
+    in_rows.fetch();
+    in_rows.fetch();
+    VBX::Vector&lt;vbx_word_t&gt; result(cols);
+    <span class="co">//skip first and last rows</span>
+    <span class="kw">for</span>(<span class="dt">int</span> row=<span class="dv">1</span>;row&lt;(rows<span class="dv">-1</span>);row++){
+        <span class="co">//the row being fetched on the next line will be used in</span>
+        <span class="co">//the next iteration.</span>
+        in_rows.fetch();
+        <span class="co">//The subscript operator returns a reference to a vector,</span>
+        <span class="co">//subscript 0 refers the last Vector in the prefetcher fifo.</span>
+        <span class="co">//(the image row with a lower row number)</span>
+        <span class="co">//It will be overwritten on the next fetch().</span>
+        Vector&lt;vbx_word_t&gt;&amp; rowA=in_rows[<span class="dv">0</span>];
+        Vector&lt;vbx_word_t&gt;&amp; rowB=in_rows[<span class="dv">2</span>];
+        <span class="co">//note how rowA and rowB are declared as references,</span>
+        <span class="co">//otherwise there would be unnecessary data copy operations</span>
+        result=( rowA + RowB )&gt;&gt;<span class="dv">1</span> <span class="co">/*shift is divide by two*/</span>
+        result.dma_write(out_image+row*pitch);
+    }
+}</code></pre>
+<h2 id="masked-blocks"><span class="header-section-number">4.10</span> Masked Blocks</h2>
+<p>Masked vector instructions are handled in a manner similar to if blocks in c. use the macro <code>Vector_mask( condition, length){...}</code>. The condition parameter is a vector expression that calculates which elements are masked, length is the vector length to use when creating the mask. It is possible to narrow the current mask with <code>Vector_mask_narrow( condition , length)</code>. Narrowing does <em>not</em> create another block.</p>
+<p>As an example:</p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp">VBX::Vector&lt;T&gt; va(<span class="dv">5</span>);
+va = VBX::ENUM; <span class="co">// &lt;-- not masked</span>
+<span class="co">// va now contains {0,1,2,3,4}</span>
+Vector_mask(va &lt; <span class="dv">2</span>, <span class="dv">5</span>){
+   va = <span class="dv">10</span>; <span class="co">//&lt;-- masked calculation</span>
+<span class="co">// va now contains {10,10,2,3,4}</span>
+}
+va +=<span class="dv">1</span>; <span class="co">//&lt;-- not masked calculation</span>
+<span class="co">// va now contains {11,11,3,4,5}</span></code></pre>
+<p>Note that nested masked blocks are <strong>not</strong> supported, so the following is undefined.</p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">//BAD EXAMPLE, IS NOT SUPPORTED!</span>
+Vector_mask(va &lt; <span class="dv">2</span>, <span class="dv">5</span>){
+   Vector_mask(vb &lt; <span class="dv">2</span>, <span class="dv">5</span>){
+   ...
+   }
+}</code></pre>
+<p>You can however do :</p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp">Vector_mask(va &lt; <span class="dv">2</span> &amp;&amp; vb &lt; <span class="dv">2</span> , <span class="dv">5</span>){
+   ...
+}</code></pre>
+<p>or</p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp">Vector_mask(va &lt; <span class="dv">2</span>  , <span class="dv">5</span>){
+   Vector_mask_narrow(vb &lt; <span class="dv">2</span>, <span class="dv">5</span>){
+   ...
+   }
+}</code></pre>
+<p>When doing small amounts of masked calculations (i.e. 3 or less instructions). It is usually more efficient to use a conditional move rather than set up the mask.</p>
+<h2 id="low-level-operations"><span class="header-section-number">4.11</span> Low Level Operations</h2>
+<p>Sometimes it is desirable to access MXP functionality that is not <em>yet</em> available via the high level Vector class. For instance 2D and 3D operations are not supported. For that reason we have striven to make it as easy as possible to mix <code>vbxx()</code> calls with Vector expressions. If it is necessary to get access to the scratchpad pointer simply use the <code>.data</code> member of the Vector class. Or, if you would like to use a vector object in <code>vbxx()</code> calls directly, that is supported as well. For example:</p>
+<pre><code>VBX::Vector&lt;vbx_word_t&gt; va(5);
+//these next two lines are equivalent
+vbxx(VADD,va,1,va);
+vbxx(VADD,va.data,1,va.data)</code></pre>
+<!--
+## Size Assertions
+*WARNING: experimental*
+
+When the `CHECK_VECTOR_LENGTH` macro is defined, the source vectors are checked
+to make sure that they match each other and the destination vectors size. This
+is likely a large performance drain, so it should only be enabled during debugging.
+
+-->
+<h2 id="best-practice"><span class="header-section-number">4.12</span> Best Practice</h2>
+<p>Group together arithmetic involving like types ie:</p>
+<pre class="sourceCode cpp"><code class="sourceCode cpp">Vector&lt;vbx_word_t&gt; vd(size),va(size);
+Vector&lt;vbx_half_t&gt; vb(size),vc(size);
+<span class="co">//This is two operations VSW, VSW</span>
+vd=va<span class="dv">+5</span> + <span class="dv">1</span>;
+<span class="co">//This is one operation VSW</span>
+vd=va+(<span class="dv">5+1</span>);
+<span class="co">//this is 4 operations VSHW(type conversion),VSWW(addition),VSHW(type conversion),VSWW(addition)</span>
+vd=va+vb+vc;
+<span class="co">//this is two operations VSWH(type conversion and addition),VSWW(addition)</span>
+vd=va+(vb+vc);</code></pre>
+<h2 id="gotchas"><span class="header-section-number">4.13</span> Gotchas</h2>
+<p>This library has not been exhaustively tested so there could be bugs in it.</p>
+<p>Watch out for failed scratchpad allocation. It is possible that you will get a null pointer for your scratchpad allocation which can be interpreted by the MXP as start of scratchpad destroying data.</p>
+<p>When dropping down to low level <code>vbxx(...)</code> calls inside of a masked block, the masked or unmasked instructions must be explicit. The API does not automatically convert <code>vbxx(...)</code> to <code>vbxx_masked(...)</code>.</p>
+<p>One of properties of templates is that sometimes compile time errors are not uncovered until a template is used. So if you use the library in a way that I intended it to be used, but have never actually used, you run the risk of having the compiler spit out a long list of errors. Please let me (<script type="text/javascript">
+<!--
+h='&#118;&#x65;&#x63;&#116;&#x6f;&#114;&#98;&#108;&#x6f;&#120;&#46;&#x63;&#x6f;&#x6d;';a='&#64;';n='&#106;&#x6f;&#x65;&#108;';e=n+a+h;
+document.write('<a h'+'ref'+'="ma'+'ilto'+':'+e+'">'+e+'<\/'+'a'+'>');
+// -->
+</script><noscript>&#106;&#x6f;&#x65;&#108;&#32;&#x61;&#116;&#32;&#118;&#x65;&#x63;&#116;&#x6f;&#114;&#98;&#108;&#x6f;&#120;&#32;&#100;&#x6f;&#116;&#32;&#x63;&#x6f;&#x6d;</noscript>) know if this happens to you.*</p>
+<h1 id="vbx_hazards"><span class="header-section-number">5</span> Instruction and DMA Hazards</h1>
+<p>The VectorBlox MXP architecture allows the DMA engine, the MXP vector engine, and the host processor to run concurrently.</p>
+<p>In particular, vector instructions and DMA operations are deposited into a common DMA/instruction queue, returning control immediately back to the host processor before those operations execute. This increases performance through parallelism, for example it provides the opportunity to hide all memory latency through double-buffering with the DMA engine. However, such concurrency can sometimes be difficult for a programmer to manage.</p>
+<p>To minimize the occurrence of hazards, the VectorBlox MXP architecture handles most data race conditions automatically in hardware, thus relieving a significant burden from the software programmer.</p>
+<p>The list of hazards are:</p>
+<ol style="list-style-type: decimal">
+<li><p>hazards between vector instructions <strong>automatic</strong></p></li>
+<li><p>hazards between DMA operations and vector instructions <strong>automatic</strong></p></li>
+<li><p>hazards within a single instruction <strong>manual</strong></p></li>
+<li><p>hazards with the host processor <strong>manual</strong></p></li>
+</ol>
+<p>Of these, the first two hazards are handled automatically by the VectorBlox MXP hardware. The last two hazards require manual programmer care and intervention.</p>
+<h2 id="hazards_between_vector_instructions"><span class="header-section-number">5.1</span> Hazards between Vector Instructions</h2>
+<p>Hazards between vector instructions are automatically handled by inserting a bubble into the vector pipeline. The bubble allows previously issued instructions to make forward progress while the current instruction is stalled until the hazards is resolved.</p>
+<p>A hazard occurs when a new instruction reads from the destination of an earlier instruction, and that earlier instruction is still in the pipeline. While some processors apply data forwarding to improve performance, the overhead of data multiplexing is significant. Hence, the vector engine inserts a bubble instead. Thus, for maximum performance, programmers should avoid reading immediately after writing to the same scratchpad address; instead, another instruction may be inserted in between the two dependent instructions. This is not a problem if using very long vectors because the earlier instruction has likely already written back its result to the vector starting address before the dependent instruction issues.</p>
+<p>Since all vector instructions execute in program-order, there are no write-after-write or write-after-read hazards between instructions.</p>
+<h2 id="hazards_between_dma_operations_and_vector_instructions"><span class="header-section-number">5.2</span> Hazards between DMA Operations and Vector Instructions</h2>
+<p>Hazards between DMA operations and vector instructions are handled automatically by inserting a bubble into the pipeline when a hazard is detected. A pipeline bubble prevents new operations or instructions from issuing, but allows previously-issued operations or instructions to make forward progress.</p>
+<p>A hazard is defined as:</p>
+<ul>
+<li><p>instruction reading from the destination of a DMA transfer <code>vbx_dma_to_vector()</code></p></li>
+<li><p>instruction writing to the source of a DMA transfer <code>vbx_dma_to_host()</code></p></li>
+<li><p><code>vbx_dma_to_host()</code> DMA reading from the destination of the vector instruction</p></li>
+<li><p><code>vbx_dma_to_vector()</code> DMA writing to the source of the vector instruction</p></li>
+</ul>
+<p>When a hazard occurs, a subsequent DMA operation or vector instruction is stalled until the conflict has been resolved. In the case of conflicting with a DMA operation, it is resolved as soon as the DMA proceeds past the region of overlap (i.e., the DMA operation does not need to finish completely).</p>
+<h2 id="hazards_within_a_single_instruction"><span class="header-section-number">5.3</span> Hazards within a Single Instruction</h2>
+<p>Hazards may occur within a single instruction. Since these are not automatically detected, they require some care by the programmer.</p>
+<p>Hazards occur when the source and destination vectors overlap in a particular way. In particular, there is no hazard in the following common cases:</p>
+<ol style="list-style-type: decimal">
+<li><p><code>dest</code> overlaps perfectly with <code>srcA</code>, and overlaps perfectly with <code>srcB</code></p></li>
+<li><p><code>dest</code> overlaps perfectly with <code>srcA</code>, but does not overlap with <code>srcB</code></p></li>
+<li><p><code>dest</code> overlaps perfectly with <code>srcB</code>, but does not overlap with <code>srcA</code></p></li>
+<li><p><code>dest</code> overlaps with <code>srcA</code>, and overlaps perfectly with <code>srcB</code>, and <code>dest</code> <span class="math"> &lt; </span> <code>srcA</code></p></li>
+<li><p><code>dest</code> overlaps with <code>srcB</code>, and overlaps perfectly with <code>srcA</code>, and <code>dest</code> <span class="math"> &lt; </span> <code>srcB</code></p></li>
+<li><p><code>dest</code> overlaps <code>srcA</code>, but does not overlap with <code>srcB</code>, and <code>dest</code> <span class="math"> &lt; </span> <code>srcA</code></p></li>
+<li><p><code>dest</code> overlaps <code>srcB</code>, but does not overlap with <code>srcA</code>, and <code>dest</code> <span class="math"> &lt; </span> <code>srcB</code></p></li>
+</ol>
+<p>By ‘overlaps perfectly’, we mean the pointers are equal. In case 1, the three operands are the same pointer (<code>dest</code> = <code>srcA</code> = <code>srcB</code>). In cases 2 and 3, the destination perfectly overlaps with just one source, and there is no overlap with the other. These three cases of perfect overlap do not present any hazards.</p>
+<p>In cases 4 through 7, the overlap represents a copy-backward operation, where the source address is always higher than the destination address in the overlap region. These copy-backwards operations do not present any hazards.</p>
+<p>The remaining (unlisted) cases of overlap represent a copy-forward operation, where the destination address is higher than one of the source addresses. This is a dangerous operation, because the address may be written before it is read. Hence, a read-after-write hazard occurs.</p>
+<p>A copy-forward operation must be used with great care. For a small copy-forward distance, there are two potential issues. The first issue is that some programmers may rely upon the pipeline depth to delay the writeback until after the scratchpad address has been read. This only works for a copy-forward distance that is shorter than the pipeline depth; since this relies upon implementation details of the processor which may change without notice, we do not encourage this type of programming. However, even if the copy forward distance is small enough, another issue may arise. If an earlier DMA operation is in progress, and causing the copy-forward to stall, then the copy-forward will probably fail. To avoid this problem, programmers must use <code>vbx_sync()</code> before any operation with a small copy-forward distance.</p>
+<p>For a large copy-forward distance, we recommend using a 2D vector operation that iterates through the vector backwards, where the vector length is set to the scratchpad width.</p>
+<p>A VBXware function, <code>vbx_vec_move()</code> handles the cases of overlap relating to a vector move operation (<code>VMOV</code>).</p>
+<p>Note that 2D and 3D matrix operations have the same problems caused by overlap between rows. Again, copy-backward operations do not pose any difficulty. However, copy-forward operations should not be relied upon. If copy-forward operations must be done, the distance must be small and a <code>vbx_sync()</code> operation must be performed beforehand.</p>
+<h2 id="hazards_with_the_host_processor"><span class="header-section-number">5.4</span> Hazards with the Host Processor</h2>
+<p>The host processor can read or write individual entries in the scratchpad through the scratchpad pointers. However, doing this while the vector engine is executing, or while the DMA engine is executing, may present a race condition.</p>
+<p>To eliminate race conditions, the programmer should call <code>vbx_sync();</code> before accessing any scratchpad entries. This ensures that all previously issued DMA operations and vector instructions have completed before the access.</p>
+<p>In some cases, it may be desirable to simply poll the scratchpad, e.g. to monitor progress without stalling. In this case, a synchronization call is not necessary. However, there are no guarantees whether prior operations have been fully or even partially completed.</p>
+<h2 id="communication_computation"><span class="header-section-number">5.5</span> Overlapping Communication with Computation</h2>
+<p>In order to get maximum performance it is necessary to overlap communication with computation. When processing large data sets, this is usually done by breaking the computation into chunks depending on the size of the scratchpad, and processing one chunk while transferring in the next. This allows the time spent transferring data to and from the scratchpad to be hidden during the actual computation.</p>
+<p>For instance, consider the following code, which computes the cube of <em>a</em> and puts the result in <em>b</em>. It uses chunks of size <em>M</em> and has a total data set of size <em>M*N</em>.</p>
+<pre class="sourceCode c"><code class="sourceCode c">vbx_word_t *v_a = vbx_sp_malloc( M*<span class="kw">sizeof</span>(vbx_word_t) );
+vbx_word_t *v_b = vbx_sp_malloc( M*<span class="kw">sizeof</span>(vbx_word_t) );
+vbx_set_vl( M );
+<span class="kw">for</span>( i = <span class="dv">0</span>; i &lt; M*N; i += M ){
+    vbx_dma_to_vector( v_a, a+i, M*<span class="kw">sizeof</span>(vbx_word_t) );
+    vbx( VVW, VMUL, v_b, v_a, v_a );
+    vbx( VVW, VMUL, v_b, v_b, v_a );
+    vbx_dma_to_host( b+i, v_b, M*<span class="kw">sizeof</span>(vbx_word_t) );
+}</code></pre>
+<p>If we want better performance, we need to rewrite the code to overlap computation with communication. One common way of doing this is double buffering. In double buffering, one buffer will hold data currently being processed, while the other will be used for transferring data to and from memory.</p>
+<pre class="sourceCode c"><code class="sourceCode c">vbx_word_t *v_a0 = vbx_sp_malloc( M*<span class="kw">sizeof</span>(vbx_word_t) );
+vbx_word_t *v_a1 = vbx_sp_malloc( M*<span class="kw">sizeof</span>(vbx_word_t) );
+vbx_word_t *v_b0 = vbx_sp_malloc( M*<span class="kw">sizeof</span>(vbx_word_t) );
+vbx_word_t *v_b1 = vbx_sp_malloc( M*<span class="kw">sizeof</span>(vbx_word_t) );
+vbx_word_t *v_tmp;
+
+vbx_set_vl( M );
+vbx_dma_to_vector( v_a0, a, M*<span class="kw">sizeof</span>(vbx_word_t) );
+<span class="kw">for</span>( i = <span class="dv">0</span>; i &lt; M*N; i += M ){
+    <span class="kw">if</span>( i &lt; M*N-M ){
+        vbx_dma_to_vector( v_a1, a+i+M, M*<span class="kw">sizeof</span>(vbx_word_t) );
+    }
+    vbx( VVW, VMUL, v_b0, v_a0, v_a0 );
+    vbx( VVW, VMUL, v_b0, v_b0, v_a0 );
+    vbx_dma_to_host( b+i, v_b0, M*<span class="kw">sizeof</span>(vbx_word_t) );
+    
+    <span class="co">//Swap buffers by changing pointers</span>
+    v_tmp = v_a0; v_a0 = v_a1; v_a1 = v_tmp;
+    v_tmp = v_b0; v_b0 = v_b1; v_b1 = v_tmp;
+}</code></pre>
+<div class="figure">
+<img src="images/double_buffer.png" alt="Communication and computation over time with no overlap" /><p class="caption">Communication and computation over time with no overlap</p>
+</div>
+<h1 id="vbx_rtc"><span class="header-section-number">6</span> Runtime Checks</h1>
+<p>The VBX API supports checking parameters given to the api calls. The checks are enabled at compile time, using the following defines:</p>
+<pre class="sourceCode c"><code class="sourceCode c">VBX_RTC_ALL
+VBX_RTC_NONE
+VBX_RTC_SP_BOUNDS
+VBX_RTC_COP_FWD
+VBX_RTC_DMA
+VBX_RTC_VEC_LEN</code></pre>
+<p>The first macros , when defined, overide the other four, but cannot be both defined.</p>
+<ul>
+<li><p><code>VBX_RTC_SP_BOUNDS</code> when calling vbx*() warn if vectors extend outside of scratchpad</p></li>
+<li><p><code>VBX_RTC_COP_FWD</code> when calling vbx*() warn if there exists a copy forward hazard</p></li>
+<li><p><code>VBX_RTC_DMA</code> when calling vbx_dma*() warn if host buffer overlaps without the scratchpad or the vector buffer extends outside of the scratchpad</p></li>
+<li><p><code>VBX_RTC_VEC_LEN</code> When calling <code>vbx_set_vl()</code>, <code>vbx_set_2D()</code>, or <code>vbx_set_3D()</code> make sure the sizes don't exceed the size of the scratchpad</p></li>
+</ul>
+<p>If it is your intent to violate one of these warnings, and you want to suppress them for brief periods, you can suppress/express them at runtime. Using <code>SUPPRESS_RT_CHECK( check )</code> or <code>EXPRESS_RT_CHECK( check )</code> respectively, where <code>check</code> is one of <code>RT_CHECK_SP_BOUND</code> , <code>RT_CHECK_COP_FWD</code>, <code>RT_CHECK_DMA</code>, <code>RT_CHECK_VEC_LEN</code>, or <code>RT_CHECK_ALL</code>.</p>
+<h1 id="vbx_port_lib"><span class="header-section-number">7</span> VBX Portability Library</h1>
+<p>Vectorblox provides a selection of functions defined in vbx_port.h to provide portability between the ARM cortex-A9, Nios II and Microblaze processors. The functions provided fall into two categories; <a href="#port_timing">Timing</a> and <a href="#port_cache">Cache Management</a></p>
+<h2 id="port_timing"><span class="header-section-number">7.1</span> Timing</h2>
+<p>The Timing functions are as follows:</p>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="dt">int</span> vbx_timestamp_start();
+
+<span class="dt">unsigned</span> vbx_timestamp_freq();
+
+vbx_timestamp_t vbx_timestamp();</code></pre>
+<p>Using These functions it is possible to calculate the execution time of code.</p>
+<p><code>vbx_timestamp_start()</code> Resets the counter to zero and starts the timer running.</p>
+<p><code>vbx_timestamp_freq()</code> Returns the frequency of the timer tick in Hz</p>
+<p><code>vbx_timestamp()</code> Returns the current value of timer.</p>
+<h3 id="timestamp-example"><span class="header-section-number">7.1.1</span> Timestamp Example</h3>
+<pre class="sourceCode c"><code class="sourceCode c">
+<span class="ot">#include &lt;stdio.h&gt;</span>
+<span class="ot">#include &quot;vbx_port.h&quot;</span>
+
+<span class="dt">int</span> main(<span class="dt">void</span>)
+{
+    <span class="co">// Declarations</span>
+    vbx_timestamp_t start,end;
+    <span class="dt">const</span> <span class="dt">float</span> ms_per_sec = <span class="dv">1000</span>.;
+    <span class="dt">unsigned</span> freq;
+    <span class="dt">float</span> milliseconds;
+
+    <span class="co">// make the timer start ticking</span>
+    vbx_timestamp_start();
+    <span class="co">// get the timer frequency</span>
+    freq = vbx_timestamp_freq();
+    <span class="co">// save the time at the beginning of calculations</span>
+    start = vbx_timestamp();
+
+    <span class="co">// do some work</span>
+
+    <span class="co">// save the time at the end of calculations</span>
+    end = vbx_timestamp();
+    <span class="co">// calculate elapsed milliseconds</span>
+    milliseconds = (<span class="dt">float</span>)(end-start) / freq * ms_per_sec;
+    <span class="co">// Print the results</span>
+    printf(<span class="st">&quot;Took %u timer ticks -&gt; %f ms</span><span class="ch">\n</span><span class="st">&quot;</span> , end-start, milliseconds);
+    <span class="kw">return</span> <span class="dv">0</span>;
+}</code></pre>
+<h2 id="port_cache"><span class="header-section-number">7.2</span> Cache Management</h2>
+<p>The cache management functions are as follows:</p>
+<pre class="sourceCode c"><code class="sourceCode c">
+<span class="dt">volatile</span> <span class="dt">void</span>* vbx_uncached_malloc(<span class="dt">unsigned</span> size);
+
+<span class="dt">volatile</span> <span class="dt">void</span>* vbx_uncached_alloca(<span class="dt">unsigned</span> size);
+
+<span class="dt">void</span> vbx_uncached_free(<span class="dt">volatile</span> <span class="dt">void</span>* ptr);
+
+<span class="dt">void</span> vbx_dcache_flush_all();
+
+<span class="dt">void</span> vbx_dcache_flush_line(<span class="dt">void</span>* ptr);
+
+<span class="dt">void</span> vbx_dcache_flush(<span class="dt">void</span>* ptr,<span class="dt">int</span> len);
+
+<span class="dt">void</span>* vbx_remap_cached(<span class="dt">volatile</span> <span class="dt">void</span> *ptr,<span class="dt">unsigned</span> len);
+
+<span class="dt">volatile</span> <span class="dt">void</span>* vbx_remap_uncached(<span class="dt">void</span>* ptr);
+
+<span class="dt">volatile</span> <span class="dt">void</span>* vbx_remap_uncached_flush(<span class="dt">void</span>* ptr,<span class="dt">unsigned</span> len);</code></pre>
+<p>The MXP cannot directly read the CPU cache, so it must read and write to main memory instead. This means that the programmer must used uncached memory, or flush the data from the cache before doing DMA or reading from the scratchpad. Use <code>vbx_uncached_malloc()</code> or <code>vbx_uncached_alloca()</code> in place of <code>malloc()</code> and <code>alloca</code> respectively to get pointers to uncached buffers. Use the <code>vbx_flush_*()</code> to flush the cache. <code>vbx_remap_cached(ptr)</code> returns an uncached pointer to the same data as <code>ptr</code>. To get an uncached pointer and flush the cache at the same time, use `vbx_uncached_flush();</p>
+<p>Note That in order to use either the timestamp functions or the cache management functions, you have to include <code>vbx_port.h</code></p>
+<h1 id="vbxware"><span class="header-section-number">8</span> VBXware Library</h1>
+<p>The VBXware library is an example library showing advanced use of the VBX API .The VBXware library can be used for illustrative purposes, or used directly in user applications.</p>
+<h2 id="vbxware_functionality"><span class="header-section-number">8.1</span> VBXware Functionality</h2>
+<p>The VBXware library provides the following functionality:</p>
+<ul>
+<li><p>Fixed Point Math</p></li>
+<li><p>Finite Impulse Response (Matrix and Vector)</p></li>
+<li><p>Median Filter</p></li>
+<li><p>Matrix Multiply</p></li>
+<li><p>Motion Estimation</p></li>
+<li><p>Sobel Edge Detection</p></li>
+<li><p>Matrix Transpose</p></li>
+<li><p>RGB To Luma Conversion</p></li>
+<li><p>Vector Addition</p></li>
+<li><p>Vector Copy</p></li>
+<li><p>Vector Exponentiation</p></li>
+<li><p>Vector Reversal</p></li>
+</ul>
+<p>For further information on this the VBXware library, see the documentation.</p>
+<h2 id="vbx_templates"><span class="header-section-number">8.2</span> VBXware Templates</h2>
+<p>Many of the functions in the VBXware libraries use the template engine. The VBX temperate engine makes it easy to create functions for all six vector types: word, half, byte, uword, uhalf and ubyte.</p>
+<h3 id="summary"><span class="header-section-number">8.2.1</span> Summary</h3>
+<p>In a nutshell the templating engine does the following:</p>
+<pre class="sourceCode c"><code class="sourceCode c">VBX_T(vbw_vec_add)(); -&gt; vbx_vec_add_word();
+                      -&gt; vbx_vec_add_half();
+                      -&gt; vbx_vec_add_byte();
+                      -&gt; vbx_vec_add_uword();
+                      -&gt; vbx_vec_add_uhalf();
+                      -&gt; vbx_vec_add_ubyte();</code></pre>
+<pre class="sourceCode c"><code class="sourceCode c">VV(T) -&gt; VVW
+      -&gt; VVH
+      -&gt; VVB
+      -&gt; VVWU
+      -&gt; VVHU
+      -&gt; VVBU</code></pre>
+<pre class="sourceCode c"><code class="sourceCode c">SV(T) -&gt; SVW
+      -&gt; SVH
+      -&gt; SVB
+      -&gt; SVWU
+      -&gt; SVHU
+      -&gt; SVBU</code></pre>
+<p>And so on...</p>
+<p>After including the relevant files all of the vbx_vec_add_*() functions are defined, and can therefore be called.</p>
+<h3 id="explanation"><span class="header-section-number">8.2.2</span> Explanation</h3>
+<p>The mechanics of how to set up your code to use this is somewhat complicated. To explain further how this works, let us look for a moment at the addition example located in the VBXware directory in the files vbw_add_t.* and vbw_add_all.*</p>
+<p>vbw_vec_add_all.c:</p>
+<pre class="sourceCode c"><code class="sourceCode c">    <span class="ot">#define VBX_TEMPLATE_T VBX_BYTESIZE_DEF</span>
+    <span class="ot">#include &quot;vbw_vec_add_t.c&quot;</span>
+
+    <span class="ot">#undef VBX_TEMPLATE_T</span>
+    <span class="ot">#define VBX_TEMPLATE_T VBX_HALFSIZE_DEF</span>
+    <span class="ot">#include &quot;vbw_vec_add_t.c&quot;</span>
+
+    <span class="ot">#undef VBX_TEMPLATE_T</span>
+    <span class="ot">#define VBX_TEMPLATE_T VBX_WORDSIZE_DEF</span>
+    <span class="ot">#include &quot;vbw_vec_add_t.c&quot;</span>
+
+    <span class="ot">#undef VBX_TEMPLATE_T</span>
+    <span class="ot">#define VBX_TEMPLATE_T VBX_UBYTESIZE_DEF</span>
+    <span class="ot">#include &quot;vbw_vec_add_t.c&quot;</span>
+
+    <span class="ot">#undef VBX_TEMPLATE_T</span>
+    <span class="ot">#define VBX_TEMPLATE_T VBX_UHALFSIZE_DEF</span>
+    <span class="ot">#include &quot;vbw_vec_add_t.c&quot;</span>
+
+    <span class="ot">#undef VBX_TEMPLATE_T</span>
+    <span class="ot">#define VBX_TEMPLATE_T VBX_UWORDSIZE_DEF</span>
+    <span class="ot">#include &quot;vbw_vec_add_t.c&quot;</span></code></pre>
+<p>vbw_vec_add_t.c:</p>
+<pre class="sourceCode c"><code class="sourceCode c">    <span class="ot">#include &quot;vbw_vec_add_t.h&quot;</span>
+    <span class="dt">void</span> VBX_T(vbw_vec_add)(vbx_sp_t *v_out, vbx_sp_t *v_in1, vbx_sp_t *v_in2)
+    {
+    vbx(VV(T), VADD, v_out, v_in1, v_in2);
+    }</code></pre>
+<p>vbw_vec_add_all.h:</p>
+<pre class="sourceCode c"><code class="sourceCode c">    <span class="ot">#define VBX_TEMPLATE_T VBX_BYTESIZE_DEF</span>
+    <span class="ot">#include &quot;vbw_vec_add_t.h&quot;</span>
+
+    <span class="ot">#undef VBX_TEMPLATE_T</span>
+    <span class="ot">#define VBX_TEMPLATE_T VBX_HALFSIZE_DEF</span>
+    <span class="ot">#include &quot;vbw_vec_add_t.h&quot;</span>
+
+    <span class="ot">#undef VBX_TEMPLATE_T</span>
+    <span class="ot">#define VBX_TEMPLATE_T VBX_WORDSIZE_DEF</span>
+    <span class="ot">#include &quot;vbw_vec_add_t.h&quot;</span>
+
+    <span class="ot">#undef VBX_TEMPLATE_T</span>
+    <span class="ot">#define VBX_TEMPLATE_T VBX_UBYTESIZE_DEF</span>
+    <span class="ot">#include &quot;vbw_vec_add_t.h&quot;</span>
+
+    <span class="ot">#undef VBX_TEMPLATE_T</span>
+    <span class="ot">#define VBX_TEMPLATE_T VBX_UHALFSIZE_DEF</span>
+    <span class="ot">#include &quot;vbw_vec_add_t.h&quot;</span>
+
+    <span class="ot">#undef VBX_TEMPLATE_T</span>
+    <span class="ot">#define VBX_TEMPLATE_T VBX_UWORDSIZE_DEF</span>
+    <span class="ot">#include &quot;vbw_vec_add_t.h&quot;</span></code></pre>
+<p>vbw_vec_add_t.h:</p>
+<pre class="sourceCode c"><code class="sourceCode c">    <span class="ot">#include &quot;vbw_template_t.h&quot;</span>
+
+    <span class="dt">void</span> VBX_T(vbw_vec_add)(vbx_sp_t *v_out, vbx_sp_t *v_in1, vbx_sp_t *v_in2);</code></pre>
+<p>What happens here is the function name is; vbx_vec_add_all.h includes vbx_vec_add_t.h multiple times, each time with <code>VBX_TEMPLATE_T</code> defined to a different type. In vbx_vec_add_t.h the macro expands to <code>vbw_vec_add_word</code> if <code>VBX_TEMPLATE_T</code> is defined as <code>VBX_WORDSIZE_DEF</code> etc. vbw_template_t.h redefines <code>vbx_sp_t</code> to the correct type based on the <code>VBX_TEMPLATE_T</code> definition as well. One last thing to note is in vbx_vec_add_t.c the mode parameter of the <code>vbx()</code> call is <code>VV(T)</code> this will be translated to the correct mode(<code>VVW</code> when <code>VBX_TEMPLATE_T</code> equals <code>VBX_WORDSIZE_DEF</code>. )</p>
+<h1 id="simulator"><span class="header-section-number">9</span> Simulator</h1>
+<p>The VectorBlox simulator is a x86 library for Linux or windows (via mingw) that accurately simulates the VBX MXP. The following sections document the functionality of the simulator.</p>
+<p>It also provides the ability to count instructions, a provide a rough estimate of cycle counts.</p>
+<h2 id="usage"><span class="header-section-number">9.1</span> Usage</h2>
+<p>The simulator provides the same functionality as the regular MXP. It works in place of the BSP. Simply linking with libvbxsim.a rather than libbsp.a or libxil.a will allow using VectorBlox functions without hardware to run on.</p>
+<h2 id="initialization"><span class="header-section-number">9.2</span> Initialization</h2>
+<p>To initialize the simulator the following function is provided.</p>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="dt">void</span> vbxsim_init( <span class="dt">int</span> num_lanes,
+                  <span class="dt">int</span> vci_lanes,
+                  <span class="dt">int</span> scratchpad_capacity_kb ,
+                  <span class="dt">int</span> max_masked_waves,
+                  <span class="dt">int</span> fxp_word_frac_bits,
+                  <span class="dt">int</span> fxp_half_frac_bits,
+                  <span class="dt">int</span> fxp_byte_frac_bits);</code></pre>
+<p>Using this initialization function it is possible to create the desirable configuration. The parameters are analogous to the corresponding parameter in the hardware configuration.There is a symmetrical function <code>vbxsim_destroy()</code> that cleans up the simulator, freeing any memory.</p>
+<h2 id="diagnostics"><span class="header-section-number">9.3</span> Diagnostics</h2>
+<p>The simulator provides the following functions to query diagnostics, and modify it's behaviour.</p>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="ot">#define MAX_DMA_ALIGN 128</span>
+<span class="ot">#define MAX_VEC_LANE  10</span>
+<span class="kw">struct</span> simulator_statistics{
+    <span class="kw">union</span>{
+        <span class="kw">struct</span> {
+            <span class="dt">unsigned</span> VMOV[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VAND[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VOR[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VXOR[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VADD[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VSUB[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VADDC[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VSUBB[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VMUL[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VMULHI[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VMULFXP[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VSHL[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VSHR[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VROTL[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VROTR[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VCMV_LEZ[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VCMV_GTZ[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VCMV_LTZ[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VCMV_GEZ[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VCMV_Z[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VCMV_NZ[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VABSDIFF[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VCUSTOM0[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VCUSTOM1[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VCUSTOM2[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VCUSTOM3[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VCUSTOM4[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VCUSTOM5[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VCUSTOM6[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VCUSTOM7[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VCUSTOM8[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VCUSTOM9[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VCUSTOM10[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VCUSTOM11[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VCUSTOM12[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VCUSTOM13[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VCUSTOM14[MAX_VEC_LANE];
+            <span class="dt">unsigned</span> VCUSTOM15[MAX_VEC_LANE];
+        }as_name;
+        <span class="dt">unsigned</span> as_array[MAX_INSTR_VAL<span class="dv">+1</span>][MAX_VEC_LANE];
+    }instruction_cycles;
+    <span class="dt">unsigned</span> <span class="dt">int</span> instruction_count[MAX_INSTR_VAL<span class="dv">+1</span>];
+    <span class="dt">unsigned</span> <span class="dt">int</span> set_vl;
+    <span class="dt">unsigned</span> <span class="dt">int</span> set_2D;
+    <span class="dt">unsigned</span> <span class="dt">int</span> set_3D;
+    <span class="dt">unsigned</span> <span class="dt">int</span> dma_bytes;
+    <span class="dt">unsigned</span> <span class="dt">int</span> dma_calls;
+    <span class="dt">unsigned</span> <span class="dt">int</span> dma_cycles[MAX_DMA_ALIGN];
+};
+<span class="kw">struct</span> simulator_statistics vbxsim_get_stats();
+<span class="kw">enum</span> dma_type {DEFERRED=<span class="dv">0</span>,  IMMEDIATE=<span class="dv">1</span>};
+<span class="dt">void</span> vbxsim_set_dma_type(<span class="kw">enum</span> dma_type);
+<span class="dt">void</span> vbxsim_reset_stats();
+<span class="dt">void</span> vbxsim_print_stats()
+<span class="dt">void</span> vbxsim_print_stats_extended();
+<span class="dt">void</span> vbxsim_disable_warnings();
+<span class="dt">void</span> vbxsim_enable_warnings();</code></pre>
+<p>The simulator keeps track of how many cycles of execution the MXP must perform for the calculations. It does this simultaneously for any number of lanes, if the number of lanes is <span class="math">2<sup><em>i</em></sup></span>, <span class="math"><em>i</em> ∈ [0, 10)</span>. To get examine these statistics use the function <code>vbxsim_get_stats()</code>, it returns the simulator_statistics structure that is described above. The counts can be reset back to zero using <code>reset_cycle_counts()</code>. Lastly,there is a pair of useful functions that print out the structure in a pretty format: <code>vbxsim_print_stats()</code> and <code>vbxsim_print_stats_extended()</code>.</p>
+<p>The simulator has a limitation in that it is run synchronously with host, which means that race conditions that make bugs on the hardware would not show up in the simulator. To deal with this limitation we have developed two modes of DMA, <code>DEFERRED</code> and <code>IMMEDIATE</code>. When the simulator is in deferred mode (default), DMA requests are not done until a) vbx_sync() is called, b) a vbx() call depends on the data in the DMA request's buffers, or c) a vbx() call depends on data in a subsequent DMA request's buffer. When the simulator is in immediate mode, the simulator does all DMA synchronously. So it is as if there is a <code>vbx_sync()</code> call right after every DMA call. If an algorithm works for both modes on the simulator it should work on the hardware, the opposite is not necessarily true. To switch between these two modes, use <code>set_dma_type(enum dma_type)</code>.</p>
+<h2 id="sim_cust_inst"><span class="header-section-number">9.4</span> Adding Custom Instructions</h2>
+<p>It is possible to implement custom instructions in Vectorblox's Matrrix processor, if your project makes use of this functionality, you may also want to simulate it as well.</p>
+<p>To do this, the simulator provides a hook :</p>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="kw">typedef</span> <span class="dt">void</span> (*custom_instr_func)(vbxsim_custom_instr_t*);
+<span class="dt">void</span> vbxsim_set_custom_instruction(<span class="dt">int</span> opcode_start,
+                                   <span class="dt">int</span> internal_functions,
+                                   <span class="dt">int</span> lanes,
+                                   custom_instr_func fun);</code></pre>
+<p>where num is the custom instruction number(0 to 15), from zero to fifteen and func is a pointer to a function that will carry out the operations to emulate the hardware. The function takes one structure as a parameter. The following describes said structure (taken from vbx_sim.h) :</p>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="kw">typedef</span> <span class="kw">struct</span>{
+        <span class="co">//bool reset;         ///&lt; Global (hard) synchronous reset</span>
+        <span class="dt">uint16_t</span> valid;       <span class="co">///&lt; Current wavefront contains valid data</span>
+        <span class="dt">char</span> vector_start;    <span class="co">///&lt; First cycle of vector operation</span>
+        <span class="dt">char</span> vector_end;      <span class="co">///&lt; last cycle of vector operation</span>
+        <span class="dt">void</span>* dest_addr_in;   <span class="co">///&lt; Destination (writeback) address from address generation</span>
+        <span class="dt">void</span>* dest_addr_out;  <span class="co">///&lt; Destination (writeback) address to be written  (OUTPUT)</span>
+        <span class="dt">char</span> sign;            <span class="co">///&lt; Signed operation</span>
+        <span class="dt">int</span> opsize;           <span class="co">///&lt; Datasize (00=Byte, 01=Halfword, 10=Word)</span>
+        <span class="dt">void</span>* byte_valid;     <span class="co">///&lt; Bytes containing valid data</span>
+        <span class="dt">void</span>* byte_enable;    <span class="co">///&lt; Bytes to be written to scratchpad              (OUTPUT)</span>
+        <span class="dt">void</span>* data_a;         <span class="co">///&lt; Source A input data</span>
+        <span class="dt">void</span>* flag_a;         <span class="co">///&lt; Source A input flags</span>
+        <span class="dt">void</span>* data_b;         <span class="co">///&lt; Source B input data</span>
+        <span class="dt">void</span>* flag_b;         <span class="co">///&lt; Source B input flags</span>
+        <span class="dt">void</span>* data_out;       <span class="co">///&lt; Destination (writeback) data                   (OUTPUT)</span>
+        <span class="dt">void</span>* flag_out;       <span class="co">///&lt; Destination (writeback) flags                  (OUTPUT)</span>
+}vbxsim_custom_instr_t;</code></pre>
+</div>
+</div>
+</div>
+<script src="js/jquery-1.8.3.min.js"></script>
+<script src="js/jquery-ui-1.9.1.custom.min.js"></script>
+<script src="js/bootstrap.js"></script>
+<script src="js/jquery.tocify.min.js"></script>
+<script>
+$(function() {
+    var toc = $("#toc").tocify({
+        selectors: "h1, h2",
+        history: false,
+        smoothScrollSpeed: "fast",
+        }).data("toc-tocify");
+      $(".optionName").popover({ trigger: "hover" });
+});
+</script>
+</body>
+</html>

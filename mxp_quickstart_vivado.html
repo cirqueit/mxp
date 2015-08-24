@@ -1,0 +1,390 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title>VectorBlox MXP Quickstart for Xilinx Vivado Toolchain</title>
+  <style type="text/css">code{white-space: pre;}</style>
+<link type="text/css" rel="stylesheet" href="css/bootstrap.css"/>
+<link type="text/css" rel="stylesheet" href="css/jquery.ui.all.css"/>
+<link type="text/css" rel="stylesheet" href="css/jquery.tocify.css"/>
+<style>
+body {
+    padding-top: 20px;
+}
+p {
+    font-size: 16px;
+}
+.headerDoc {
+    color: #005580;
+}
+
+@media (max-width: 767px) {
+    #toc {
+        position: relative;
+        width: 100%;
+        margin: 0px 0px 20px 0px;
+    }
+}
+</style>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-48667957-1', 'vectorblox.github.io');
+  ga('send', 'pageview');
+
+</script>
+</head>
+<body>
+<div class="container-fluid">
+<div class="row-fluid">
+<div class="span3">
+<div id="toc"></div>
+</div>
+<div class="span9">
+<div id="header">
+<h1 class="title">VectorBlox MXP Quickstart for Xilinx Vivado Toolchain</h1>
+</div>
+<p>If you do not have a MXP license, or are only intererested in software development, skip over the hardware specific sections.</p>
+<h1 id="quickstart_install"><span class="header-section-number">1</span> Installation</h1>
+<p>The VectorBlox MXP is packaged for easy integration with Vivado IP Integrator.</p>
+<h2 id="prerequisites"><span class="header-section-number">1.1</span> Prerequisites</h2>
+<p>Before you begin, make sure you have:</p>
+<ul>
+<li><p>Vivado, version 2013.4 or greater is required. All example projects were created with version 2014.2.</p></li>
+<li><p>One of the development boards for which we provide pre-built bitstreams, if you wish to follow the examples in this document. Currently pre-built systems are only available for the Avnet ZedBoard.</p></li>
+<li><p>A VectorBlox MXP release, provided as a zip or tar.gz file. (Hardware developement only)</p></li>
+</ul>
+<h2 id="installation"><span class="header-section-number">1.2</span> Installation</h2>
+<h3 id="licensing"><span class="header-section-number">1.2.1</span> Licensing</h3>
+<p>If you have a release with encrypted RTL, a FLEXlm license file will be sent to you separately from <strong>ip_license_mgt@xilinx.com</strong>. It should be installed in the same place you installed your Vivado license.</p>
+<h3 id="vivado-toolchain"><span class="header-section-number">1.2.2</span> Vivado Toolchain</h3>
+<ul>
+<li><p>Download and install the Vivado Design Suite according to Xilinx’s instructions.</p>
+<p><a href="http://www.xilinx.com/support/download.html">http://www.xilinx.com/support/download.html</a></p></li>
+<li><p>To use the MXP hardware in your Vivado IP Integrator block designs, the <code>pcores</code> directory in <code>repository/xilinx</code> must be added to either Vivado's global IP Repository Search Paths (<strong>Tools</strong> <span class="math"> → </span> <strong>Options…</strong> <span class="math"> → </span> <strong>General</strong> <span class="math"> → </span> <strong>IP Catalog</strong> <span class="math"> → </span> <strong>Add Directories…</strong>):</p>
+<p><img src="images/vivado_options_ip_search_paths.png" alt="Global IP Repository Search Paths" /><br /></p>
+<p>or the project-specific IP Repositories (<strong>Tools</strong> <span class="math"> → </span> <strong>Project Settings…</strong> <span class="math"> → </span> <strong>IP</strong> <span class="math"> → </span> <strong>Repository Manager</strong> tab <span class="math"> → </span> <strong>Add Repositories…</strong>):</p>
+<p><img src="images/vivado_project_settings_add_ip.png" alt="Project IP Repositories" /><br /></p>
+<p>The project-specific search paths can also be set from the Tcl Console with</p>
+<pre><code>set_property ip_repo_paths $pcores_dir [current_fileset]
+update_ip_catalog</code></pre>
+<p>where <code>$pcores_dir</code> is the path to the <code>pcores</code> directory.</p></li>
+<li><p>When you run the Xilinx SDK, the <code>drivers</code> and <code>sw_services</code> directories in <code>repository/xilinx</code> will need to be added to the XSDK search path, from the Menu Bar (<strong>Xilinx Tools</strong> <span class="math"> → </span> <strong>Repositories</strong> <span class="math"> → </span> <strong>Local Repositories</strong> <span class="math"> → </span> <strong>New…</strong>).</p></li>
+</ul>
+<p>If you wish to use the pre-built bitstreams we provide for the Avnet ZedBoard, you should also perform the following steps:</p>
+<ul>
+<li><p>To test your connection to the ZedBoard:</p>
+<ol style="list-style-type: decimal">
+<li><p>Power on the ZedBoard.</p></li>
+<li><p>Connect a USB cable between the board’s “PROG” micro-USB port and your computer.</p></li>
+<li><p>In Vivado, open the Hardware Manager (<strong>Flow</strong> <span class="math"> → </span> <strong>Open Hardware Manager</strong>). Select <strong>Tools</strong> <span class="math"> → </span> <strong>Open New Target…</strong> and follow the Wizard's instructions to view the available targets. If all is well, you should see the ZedBoard target appear as in the screenshot below:</p>
+<p><img src="images/vivado_open_new_hw_target_zed.png" alt="Open New Hardware Target Wizard" /><br /></p></li>
+</ol></li>
+<li><p>Also see the <a href="#common_board_setup">Board Setup Notes</a> below.</p></li>
+</ul>
+<h3 id="common_board_setup"><span class="header-section-number">1.2.3</span> Board Setup Notes</h3>
+<ul>
+<li>For the ZedBoard, enable JTAG boot mode (as opposed to SD card or Quad-SPI boot mode) by connecting the jumpers for MIO[6:2] to ground.</li>
+</ul>
+<!--
+-   For the Atlys, you might need to install a driver for the EXAR XR21V1410 USB UART.
+    Linux and Windows drivers can be downloaded from
+    <http://www.exar.com/connectivity/uart-and-bridging-solutions/usb-uarts/xr21v1410>.
+    (Windows 7 should automatically find and install the driver.)
+    In Linux, the device should appear as /dev/ttyUSB*.
+-->
+<ul>
+<li><p>For the ZedBoard, you might need to install a driver for the Cypress CY7C64225 USB UART. Instructions for installing the Windows driver are available on [zedboard.org] under Support <span class="math"> → </span> Documentation <span class="math"> → </span> Cypress USB-to-UART Setup Guide, but most versions of Windows should automatically find and install the driver. Popular Linux distributions should already include support for the Cypress USB UART with the USB cdc_acm kernel module (the device should appear as /dev/ttyACM*).</p></li>
+<li><p>Install a serial port terminal emulation program (e.g. PuTTY on Windows, picocom on Linux) to display output from the board’s USB UART.</p></li>
+</ul>
+<h1 id="quickstart_hardware"><span class="header-section-number">2</span> Hardware</h1>
+<p>This section describes how to instantiate the VectorBlox MXP processor into a MicroBlaze or Zynq based Vivado IP Integrator design.</p>
+<p>Some familiarity with Vivado IP Integrator is assumed; please refer to Xilinx’s documentation for further details. See Vivado Tutorial and User Guide on Embedded Processor Hardware Design (UG940 and UG898).</p>
+<p>You must ensure that the VectorBlox MXP design files are in the Vivado IP Search Path; please see the Installation section for details.</p>
+<h2 id="microblaze_system_configuration"><span class="header-section-number">2.1</span> MicroBlaze System Configuration</h2>
+<p>The figure below shows a Vivado IPI system containing a microblaze system with an MXP.It uses the DRAM connected to the PS7 on the zedboard. The clocks and several peripherals have been removed to simplify the screenshot.</p>
+<div class="figure">
+<img src="images/vivado_microblaze_no_clocks.png" />
+</div>
+<p>The MXP has three main interfaces: an instruction port that connects to the MicroBlaze's AXI4-Streaming interface, a scratchpad memory interface that connects to the MicroBlaze's peripheral bus, and a DMA engine that connects to the DRAM controller (or other shared memory). The section on MXP port connections <a href="#vectorblox_mxp_port_connections">below</a> provides further details.</p>
+<h3 id="microblaze_configuration"><span class="header-section-number">2.1.1</span> MicroBlaze Configuration</h3>
+<ul>
+<li><p>The MXP is little-endian, so the MicroBlaze must be configured to be little-endian as well (<code>C_ENDIANNESS</code> = 1). (This is the default setting for a MicroBlaze processor with AXI4 interfaces.)</p></li>
+<li><p>We recommend that you enable the MicroBlaze’s Instruction Cache, Data Cache, and Branch Target Cache, as these will significantly improve performance. The figure below shows the MicroBlaze’s cache configuration panel. The cacheable address range is also defined in this panel and typically includes the DRAM address range.</p>
+<p><img src="images/vivado_mb_cache_cfg.png" /><br /></p></li>
+<li><p>The MXP connects to the MicroBlaze via an AXI4-Streaming interface, so you must set the number of Stream links to at least 1 (<code>C_USE_FSL_LINKS</code> = 1). In the MicroBlaze advanced core configuration dialog box, select the <strong>Buses</strong> tab, set <strong>Number of Stream Links</strong> to 1 or more, and set <strong>Select Stream Interfaces</strong> to FSL.</p>
+<p><img src="images/vivado_mb_stream_cfg.png" /><br /></p>
+<p>Note that MXP software driver assumes that the MXP processor is connected to FSL0 (DRFSL0/DWFSL0). If you need to use FSL0 for another purpose, please contact VectorBlox for a modified version of the MXP driver.</p></li>
+</ul>
+<h3 id="microblaze_axi_timer"><span class="header-section-number">2.1.2</span> AXI Timer instance</h3>
+<p>On MicroBlaze-based systems, a dedicated axi_timer instance is required for the <code>vbx_timestamp</code> software functions to work correctly.</p>
+<h2 id="zynq_system_configuration"><span class="header-section-number">2.2</span> Zynq System Configuration</h2>
+<p>On a Zynq system, the VectorBlox MXP for ARM uses a dedicated AXI slave interface instead of an FSL interface as an instruction port. The AXI instruction port connects to one of the M_AXI_GPx interfaces on the Zynq Processing System (PS), and appears as a memory-mapped peripheral to the ARM Cortex-A9 cores. The memory range that the instruction port is mapped to must have its attributes set to &quot;shareable device&quot; instead of the default &quot;strongly ordered&quot; to improve instruction throughput.</p>
+<p>The MXP's scratchpad slave interface also connects to one of the M_AXI_GPx interfaces.</p>
+<p>The MXP's DMA engine is typically connected to one of the Zynq PS High Performance AXI Slave Ports (S_AXI_HPx) for access to the PS DDR DRAM controller, or to a memory controller implemented in the Programable Logic (PL).</p>
+<p>If connected to an S_AXI_HPx port, the S_AXI_HPx port should be configured to be as wide as possible, i.e 64-bits wide for vector widths greater than one.</p>
+<p>A PL-based memory controller (e.g. Xilinx's 7 Series Memory Interface Generator IP) can be configured with a data bus much wider than 64 bits and can therefore provide much more memory bandwidth to the MXP's DMA engine, but the bandwidth available to the ARM cores in the PS will be more limited because the M_AXI_GPx ports have a fixed 32-bit data bus width.</p>
+<h2 id="axi_considerations"><span class="header-section-number">2.3</span> AXI Considerations</h2>
+<p>Avoid using bus masters that perform narrow transfers (i.e. transfers whose size, as specified by AxSIZE[2:0], is smaller than the data bus width).</p>
+<p>If a bus master advertises that it uses narrow bursts (e.g. <code>C_M_AXI_SUPPORTS_NARROW_BURST</code> = 1 in its MPD file), IPI will by default automatically enable narrow burst support in all AXI4 slaves connected to that bus master. Narrow burst support does not only increase area, but can also affect performance. The maximum achievable throughput of some memory controllers can be significantly degraded when narrow burst support is enabled.</p>
+<h2 id="support_for_uncached_access"><span class="header-section-number">2.4</span> Support for Uncached Access to Cached Memory Region</h2>
+<p>The VBX API library provides some functions to simplify sharing of data between the host CPU (MicroBlaze or ARM Cortex-A9) and the MXP without requiring the application programmer to explicitly flush data cache lines. These functions include <code>vbx_shared_malloc()</code>, <code>vbx_shared_free()</code>, <code>vbx_remap_uncached()</code>, and <code>vbx_remap_cached()</code>.</p>
+<p>The library assumes that the host CPU can access a cached memory region in an uncached manner (i.e. bypassing the data cache) simply by setting the most significant bit of the physical address to 1.</p>
+<h3 id="microblaze-data-cache-bypass"><span class="header-section-number">2.4.1</span> MicroBlaze Data Cache Bypass</h3>
+<p>Unfortunately MicroBlaze does not have built-in support for bypassing the data cache (other than disabling the entire data cache), but we can add equivalent functionality by adding some bus connections and placing some restrictions on the system’s address map:</p>
+<ul>
+<li><p>The MicroBlaze’s cached memory region must be contained within the range <code>0x0</code> to <code>0x7fff_ffff</code>.</p></li>
+<li><p>Any memory peripherals that are to be shared between MicroBlaze and MXP must be accessible in the range <code>0x0</code> to <code>0x7fff_ffff</code> and at a mirror image location (differing only in the MSB of the address) in the range <code>0x8000_0000</code> to <code>0xffff_ffff</code>.</p></li>
+</ul>
+<p>In terms of bus connectivity, each shared memory peripheral must be reachable from both the MicroBlaze’s M_AXI_DC data cache interface and its M_AXI_DP data peripheral interface. A data access to an address in the cached memory range will go over the M_AXI_DC bus (if there is a cache miss), but by setting the MSB of the address to 1, the access will bypass the cache and use the M_AXI_DP bus.</p>
+<p>There are two ways to achieve this additional connectivity:</p>
+<ul>
+<li><p><strong>Add an additional AXI slave port to each shared memory peripheral.</strong> Connect one port to the MicroBlaze’s M_AXI_DC interface (and map it to a cached address range), and connect the other port to the M_AXI_DP interface (and map it to an uncached address range that differs from the first port’s address range by just the MSB). Xilinx’s DRAM controllers typically support multiple AXI slave ports.</p></li>
+<li><p><strong>Connect the M_AXI_DP bus to the M_AXI_DC bus with an AXI-to-AXI connector that also remaps addresses.</strong> VectorBlox provides an <strong>axi2axi_remap</strong> component for this purpose. (It is included in the pcores directory, and can be found in the Vivado IP Catalog called <strong>AXI Address Remap</strong>) Connect the component’s AXI slave port to the M_AXI_DP bus, and connect its master port to the M_AXI_DC bus. Map the connector’s slave port to an address range above <code>0x8000_0000</code>, large enough to span the uncached address ranges of all shared memory peripherals. Accesses over the M_AXI_DP bus that fall within the connector’s address range are passed through to the M_AXI_DC bus, but with the MSB of the address set to 0, thus allowing uncached access to memory on the M_AXI_DC bus.</p>
+<p>The advantage of this method is that it doesn’t require an additional AXI slave port to be added to existing memory peripherals.</p></li>
+</ul>
+<h3 id="arm-cortex-a9-data-cache-bypass"><span class="header-section-number">2.4.2</span> ARM Cortex-A9 Data Cache Bypass</h3>
+<p>On the ARM Cortex-A9, the translation table in the CPU's Memory Management Unit (MMU) can be used to alias the physical address range of a shared memory to two logical address ranges that differ only in address bit 31. The memory attributes of the lower address range are set to &quot;normal cacheable&quot;, whereas the attributes of the upper address range are set to &quot;strongly-ordered&quot; to make the region non-cacheable. (Setting the memory attributes of the upper range to &quot;normal non-cacheable&quot; does not seem to have the desired effect.)</p>
+<p>The <em>MXP Programming Guide</em> gives an example of how to do this.</p>
+<h2 id="vectorblox_mxp_instantiation"><span class="header-section-number">2.5</span> VectorBlox MXP Instantiation and Configuration</h2>
+<h3 id="vivado-ip-integrator"><span class="header-section-number">2.5.1</span> Vivado IP Integrator</h3>
+<p>With an opened block design, add an MXP instance by clicking on the <strong>Add IP</strong> button, or right-click on the canvas and select <strong>Add IP…</strong>. In the Search box, type &quot;MXP&quot; to find the MXP IP. If the IP repository search paths have been configured correctly, you should see something similar to the following:</p>
+<p><img src="images/vivado_add_ip_mxp.png" /><br /></p>
+<p>Double-click on <strong>VectorBlox MXP</strong> (or press Enter) to add an MXP instance to your block design.</p>
+<p>Then double-click on the MXP instance top open the &quot;Re-customize IP&quot; dialog box shown below.</p>
+<p><img src="images/vivado_customize_ip_mxp.png" /><br /></p>
+<p>The parameters are described <a href="#parameters">in the next section</a>.</p>
+<h3 id="parameters"><span class="header-section-number">2.5.2</span> Parameters</h3>
+<dl>
+<dt>Number of Vector Lanes</dt>
+<dd><p>The number of 32-bit vector lanes. This must be a power of 2.</p>
+</dd>
+<dt>Number of Memory Lanes</dt>
+<dd><p>The data bus width of the MXP DMA Engine’s AXI master interface expressed in terms of 32-bit lanes. The number of memory lanes must be a power of two and no larger than the number of vector lanes.</p>
+</dd>
+<dt>Maximum Burst Size in Beats</dt>
+<dd><p>The maximum number of beats per burst issued by the DMA Engine’s AXI master interface. (A beat is a clock cycle in which data is transferred between a source and sink interface.)</p>
+</dd>
+<dt>Scratchpad Size</dt>
+<dd><p>The Scratchpad RAM size in kilobytes.</p>
+</dd>
+<dt>Multiplier Granularity</dt>
+<dd><p>Sets the minimum multiplier size. This can be used to reduce FPGA multiplier resource utilization at the cost of performance. If set to <strong>Byte</strong>, then byte, halfword, and word multipliers are instantiated and multiplication of any element size runs at full speed. If set to <strong>Halfword</strong>, only word and halfword multipliers are instantiated; byte-width multiplication will be executed with the halfword multiplier and run at half speed. If set to <strong>Word</strong>, only word multipliers are instantiated; halfword-width multiplication will run at half speed and byte-width multiplication will run at quarter speed.</p>
+</dd>
+<dt>Fixed-Point Multiply Format</dt>
+<dd><p>These parameters affect the fixed-point multiply operation. They specify the number of least-significant bits that will be used to represent the fractional part of 32-bit, 16-bit, and 8-bit fixed-point numbers.</p>
+<p>The fixed-point formats are also displayed in Q notation, where the first number specifies the number of integer bits and the second number specifies the number of fractional bits.</p>
+<p>Fixed-point formats with no integer bits (Q0.X) are not allowed. Multiply high (VMULHI) is equivalent to fixed-point multiply for these formats and should be used instead.</p>
+</dd>
+<dt>Instruction Port Type</dt>
+<dd><p>Sets the type of port for instruction receiving. Choose Memory Mapped AXI4 if connected to an ARM CPU, AXI4-Stream if connecting to MB.</p>
+</dd>
+<dt>Number of Mask Partitions</dt>
+<dd><p>Enable masked instructions</p>
+</dd>
+<dt>Maximum Number of Waves fo Masked Instructions.</dt>
+<dd><p>Sets the maximum vector length for masked instructions. If you need to use vectors that are 4096 bytes long on a V16 choose: <code>4096/(16*4)= 64</code> (each lane can take 4 bytes)</p>
+</dd>
+</dl>
+<p>The core configuration dialog box also displays a couple of derived parameters:</p>
+<dl>
+<dt>AXI Master Data Width in Bits</dt>
+<dd><p>The data bus width, in bits, of the DMA Engine’s AXI master interface. This is derived from the number of memory lanes.</p>
+</dd>
+<dt>Maximum Burst Size in Bytes</dt>
+<dd><p>The AXI master interface’s maximum burst size in bytes, as determined by the memory bus width and the maximum number of beats per burst.</p>
+</dd>
+</dl>
+<h2 id="vectorblox_mxp_port_connections"><span class="header-section-number">2.6</span> VectorBlox MXP Port Connections</h2>
+<p>This section describes the MXP processor’s interfaces:</p>
+<dl>
+<dt>core_clk</dt>
+<dd><p>This is the main MXP clock, as well as the AXI clock. The MXP’s AXI Master and Slave interfaces run synchronously to <strong>core_clk</strong>.</p>
+</dd>
+<dt>core_clk_2x</dt>
+<dd><p>This clock must be double the frequency of the AXI clock <strong>core_clk</strong> and must be synchronous to <strong>core_clk</strong>. It should be generated from the same PLL that provides <strong>core_clk</strong>.</p>
+</dd>
+<dt>aresetn</dt>
+<dd><p>This is the active low reset input. Assertion and deassertion must be synchronous to the AXI clock <strong>core_clk</strong> and <strong>core_clk_2x</strong>.</p>
+</dd>
+<dt>AXI3/AXI4 Master</dt>
+<dd><p>The <strong>M_AXI</strong> master interface is the MXP DMA Engine’s interface to external memory. The data bus width is determined by the number of memory lanes selected in the MXP Parameter Editor. On the MicroBlaze version of MXP, AXI4 is used, but on the ARM version, AXI3 is used to facilitate connection to the Zynq PS' AXI3-only S_AXI_HPx slave ports without having an AXI4-to-AXI3 procotol converter (burst splitter) automatically inferred. The only difference between the AXI3 and AXI4 interfaces is the maximum burst length supported: 16 beats for AXI3 and 256 beats for AXI4.</p>
+</dd>
+<dt>AXI4-Lite Slave</dt>
+<dd><p>The <strong>S_AXI</strong> slave interface allows the MicroBlaze or ARM CPU to access the MXP’s scratchpad memory. It is typically connected to either the MicroBlaze’s M_AXI_DP bus or Zynq PS's M_AXI_GP1 port. The slave data bus is 32-bits wide.</p>
+</dd>
+<dt>AXI4-Streaming(MicroBlaze version only)</dt>
+<dd><p>The MicroBlaze provides instructions to the MXP over an AXI4-Streaming interface. The MXP’s S_AXIS_INSTR and M_AXI_INSTR interfaces must be connected to the MicroBlaze’s M0_AXIS and S0_AXIS interfaces, respectively.</p>
+</dd>
+<dt>AXI4 Instruction Slave (ARM version only)</dt>
+<dd><p>The <strong>S_AXI_INSTR</strong> slave interface is used to receive instructions from the Zynq PS. It should be connected to the Zynq PS's M_AXI_GP0 interface.</p>
+</dd>
+<dt>core_clk_2x</dt>
+<dd><p>This must be connected to a clock that is synchronous to and twice the frequency of <strong>core_clk</strong>.</p>
+</dd>
+</dl>
+<p>The figures below show a Vivado IP Integrator block design for a a Zynq-based MXP system, followed by the Address Map view of the same system.</p>
+<p><img src="images/vivado_zedboard_arm_bd.png" /> <img src="images/vivado_zedboard_arm_addr_map.png" /><br /></p>
+<h2 id="vivado_implementation"><span class="header-section-number">2.7</span> Vivado Implementation Flow</h2>
+<p>When your IP Integrator block design is complete, select <strong>Tools</strong> <span class="math"> → </span> <strong>Validate Design</strong> to run DRC.</p>
+<p>If there are no errors, create a top-level HDL wrapper by right-clicking on the block design in the Sources panel and selecting <strong>Create HDL Wrapper…</strong>.</p>
+<p>Then, from the Flow Navigator, run <strong>Generate Block Design</strong>, then <strong>Generate Bitstream</strong>. Synthesis and Implementation will be automatically run prior to bitstream generation.</p>
+<h1 id="quickstart_software"><span class="header-section-number">3</span> Software</h1>
+<p>This section describes how to download one of the provided pre-built FPGA bitstreams to a supported development board and how to compile and run a test program on it.</p>
+<p>Below, the string <strong>EXAMPLES</strong> refers to the <code>examples</code> subdirectory of the extracted release.</p>
+<h2 id="software_prerequisites"><span class="header-section-number">3.1</span> Prerequisites</h2>
+<p>Before you begin, make sure you have:</p>
+<ul>
+<li><p>Installed Xilinx Vivado 2013.4 or later.</p></li>
+<li><p>A ZedBoard development board/kit to use prebuilt systems.</p></li>
+<li><p>Connected your development board to your computer via USB cable and turned the board on.</p></li>
+<li><p>Configured your development board so that FPGA bitstreams and software ELF files can be downloaded via JTAG. For example, on the ZedBoard, the jumpers for MIO[6:2] should all be tied low.</p></li>
+</ul>
+<h2 id="compiling-and-running-a-test-program"><span class="header-section-number">3.2</span> Compiling and Running a Test Program</h2>
+<ol style="list-style-type: decimal">
+<li><p><strong>Start a Command Shell.</strong></p>
+<p>If using Windows, open a Command Prompt (e.g. go to the <strong>Start Menu</strong>, then type <code>cmd.exe</code> in the &quot;Search program and files&quot; box), change to the Vivado installation directory (e.g. <code>C:\Xilinx\Vivado\2014.2</code>), then run either <code>settings32.bat</code> or <code>settings64.bat</code> depending on whether you are using a 32-bit or 64-bit version of Windows.</p>
+<p>In Linux, open a terminal and run the appropriate <code>settings{32,64}.{sh,csh}</code> script in the root of your Xilinx Vivado installation. (Select 32 or 64 depending on whether you want to use the 32-bit or 64-bit versions of the tools, and select sh or csh depending on whether you are using a Bourne-style shell, such as sh or bash, or a C Shell, such as csh or tcsh.) This sets up the proper environment variables for using the Xilinx development tools.</p></li>
+<li><p>Navigate to one of the prebuilt VectorBlox MXP systems for your development board, located in <code>EXAMPLES/boards/&lt;board_name&gt;/prebuilt_*</code>.</p>
+<p>For example, for the ZedBoard, change directory to <code>EXAMPLES/boards/zedboard_arm_viv/prebuilt_zedboard_arm_viv/v16</code> for a 16-lane MXP system.</p></li>
+<li><p>Store the path to the directory in a shell variable. In Linux, assuming you are using a Bourne-style shell such as <code>sh</code> or <code>bash</code>, use</p>
+<pre><code>PROJ_ROOT=`pwd`</code></pre>
+<p>If using <code>csh</code> or <code>tcsh</code>, use</p>
+<pre><code>set PROJ_ROOT=`pwd`</code></pre>
+<p>In Windows, use</p>
+<pre><code>set PROJ_ROOT=%cd%</code></pre></li>
+<li><p>Navigate to a test application such as <code>vbw_vec_add_t</code>, located in <code>EXAMPLES/software/bmark/vbw_vec_add_t</code>.</p></li>
+<li><p><strong>Make the executable.</strong></p>
+<p>To compile the program for the FPGA bitstream you previously selected, you need to pass the location of the BSP to <code>make</code>. Assuming the <code>PROJ_ROOT</code> shell variable has been set appropriately, on Linux, run</p>
+<pre><code>make clean_all all PROJ_ROOT=$PROJ_ROOT</code></pre>
+<p>On Windows, run</p>
+<pre><code>make clean_all all PROJ_ROOT=%PROJ_ROOT%</code></pre>
+<p>After a long list of messages and a few seconds, the file <strong>test.elf</strong> should have been created.</p>
+<p>Note that we used the <code>clean_all</code> target first to ensure that any libraries that might have been compiled against a different BSP in the past were cleaned and re-compiled. If you know that the libraries were already compiled for the selected BSP, you can omit the <code>clean_all</code> target.</p></li>
+<li><p><strong>Program the FPGA.</strong></p>
+<p>We provide a make target to program the FPGA with XMD. In Linux, use</p>
+<pre><code>make pgm PROJ_ROOT=$PROJ_ROOT</code></pre>
+<p>In Windows, use</p>
+<pre><code>make pgm PROJ_ROOT=%PROJ_ROOT%</code></pre></li>
+</ol>
+<!---
+    `impact -batch etc/download.cmd`
+or
+    xmd:
+        connect arm hw
+        rst -srst
+        fpga -f SDK/SDK_Export/hw/system.bit
+        source SDK/SDK_Export/hw/ps7_init.tcl
+        ps7_init
+        ps7_post_config
+        exit
+-->
+
+
+<ol start="8" style="list-style-type: decimal">
+<li><p>Open a serial port terminal emulator to prepare to view the output from the board’s USB-UART. On Linux, you can, for example, open a new terminal and run <!--`picocom -b 38400 /dev/ttyUSB0` for the Atlyor --> <code>picocom -b 115200 /dev/ttyACM0</code> <!-- for the ZedBoard-->. On Windows, use a program such as PuTTY to connect to the USB serial port.</p></li>
+<li><p><strong>Download the executable.</strong></p>
+<p>We provide a make target to download the ELF with XMD. In Linux, use</p>
+<pre><code>make run PROJ_ROOT=$PROJ_ROOT</code></pre>
+<p>In Windows, use</p>
+<pre><code>make run PROJ_ROOT=%PROJ_ROOT%</code></pre></li>
+</ol>
+<!---
+    `xmd -tcl xmd_mb.tcl`
+
+         connect arm hw
+         dow test.elf
+         con
+-->
+
+<ol start="9" style="list-style-type: decimal">
+<li><strong>View execution output.</strong> You should see output in the serial terminal emulator you opened in an earlier step. The executable may use stdin or stdout for printf, scanf, and similar functions.</li>
+</ol>
+<h2 id="using-the-mxp-with-linux-beta"><span class="header-section-number">3.3</span> Using the MXP with Linux (Beta)</h2>
+<p>Currently it is only possible to run on ARM on the ZYNQ chips, but it should possible with a little effort to make it work under microblaze as well.</p>
+<h3 id="building-and-booting-linux"><span class="header-section-number">3.3.1</span> Building and Booting linux</h3>
+<p>Use the instructions at http://www.wiki.xilinx.com/Getting+Started with the following caveats</p>
+<ol style="list-style-type: decimal">
+<li><p>Use git://github.com/VectorBlox/linux-xlnx.git instead of git://github.com/Xilinx/linux-xlnx.git (checkout the mxp branch)</p></li>
+<li><p>When generating the device-tree, make sure that the vectorblox drivers (located in repository/xilinx/drivers ) are in the repository in addition to the device tree generator downloaded from xilinx.</p></li>
+</ol>
+<h4 id="non-volatile-root-filesystem"><span class="header-section-number">3.3.1.1</span> Non-volatile Root Filesystem</h4>
+<p>To use another partition as a rootfs rather than using a ramfs, follow these instructions.</p>
+<ol style="list-style-type: decimal">
+<li><p>Create A SD card with a small boot partition (FAT32) and a large root partition (EXT4)</p></li>
+<li><p>Create a rootfs</p>
+<p>We suggest using the rootfs from linaro <a href="https://releases.linaro.org/12.11/ubuntu/precise-images/ubuntu-desktop/linaro-precise-ubuntu-desktop-20121124-560.tar.gz">(link)</a> but any rootfs should work.</p>
+<p>Move that rootfs into the correct partition on the SD card. If you are using the suggested rootfs, use the following command: <code>sudo tar --strip-components=3 -C /media/rootfs -xzpf linaro-precise-ubuntu-desktop-20121124-560.tar.gz binary/boot/filesystem.dir</code></p></li>
+<li><p>Editing the Device-Tree</p>
+<p>Edit the device tree by adding <code>root=/dev/mmcblk0p2 rw rootfstype=ext4 rootwait devtmpfs.mount=0</code> to bootargs.</p></li>
+<li><p>During u-boot, press any key to stop autoboot, then run the following commands from the u-boot prompt</p>
+<pre><code>&gt; load mmc 0 ${kernel_load_address} ${kernel_image}
+&gt; load mmc 0 ${devicetree_load_address} ${devicetree_image}
+&gt; bootm ${kernel_load_address} - ${devicetree_load_address}</code></pre>
+<p><em>note: the ${variable} are pre-initialized by u-boot</em></p>
+<p>Those commands can be automated by editing include/configs/zynq-common.h in the u-boot repository. Search for <code>sdboot=</code> to find where to edit.</p></li>
+</ol>
+<h3 id="using-the-vectorblox-api-from-linux-hosted-processes"><span class="header-section-number">3.3.2</span> Using the VectorBlox API from Linux Hosted Processes</h3>
+<p>To use the MXP from processes hosted by Linux, it is necessary to use the VectorBlox API (libvbxapi.a). The Vectorblox API is released in source form in vectorblox/repository/lib/vbxapi. To cross-compile the library, run <code>make LINUX=true</code>. Another option is to compile the source onto the newly created linux system and use it's native gcc to compile it there. To compile there, use the command <code>make LINUX=true Native=true</code></p>
+<h1 id="creating_your_own_standalone_bsp"><span class="header-section-number">4</span> Creating your own Standalone BSP</h1>
+<h2 id="from_the_gui"><span class="header-section-number">4.1</span> From the GUI</h2>
+<ul>
+<li><p>If using Vivado, make sure the Block Design is open, then select <strong>File</strong> <span class="math"> → </span> <strong>Export</strong> <span class="math"> → </span> <strong>Export Hardware</strong>. By default the XML platform description file will be created in <code>&lt;proj_name&gt;/&lt;proj_name&gt;.sdk/</code>, but this can be changed by setting the &quot;Export to:&quot; location in the dialog box. When this is done, Launch the SDK from <strong>File</strong> <span class="math"> → </span> <strong>Launch SDK</strong></p></li>
+<li><p>In the Xilinx SDK, select the <strong>Xilinx Tools</strong> menu, then <strong>Repositories</strong>.</p></li>
+<li><p>The <strong>Preferences</strong> dialog box will open, with the <strong>Repositories</strong> page already selected.</p>
+<p>You must now add the location of the <code>drivers</code> and <code>sw_services</code> directories (i.e. their common parent directory) to the software repository list. Click <strong>New…</strong> next to either <strong>Local Repositories</strong> or <strong>Global Repositories</strong>, and add the repository location. Click <strong>OK</strong> to close the Preferences dialog box.</p></li>
+<li><p>From the <strong>File</strong> menu, select <strong>New</strong> <span class="math"> → </span> <strong>Board Support Package</strong>.</p></li>
+<li><p>Give your BSP a project name, and under <strong>Board Support Package OS</strong>, select <strong>standalone</strong>. Click <strong>Finish</strong>.</p></li>
+<li><p>In the <strong>Board Support Package Settings</strong> dialog box, click on <strong>Overview</strong> in the left panel, and look at the <strong>Supported Libraries</strong> section. You should see an entry for <strong>vbxware</strong>, the VBXWare Library, as in the figure below.</p>
+<div class="figure">
+<img src="images/xsdk_bsp_libraries.png" />
+</div>
+<p>If you do not see the VBXWare library listed, the likely reason is that the VectorBlox <strong>sw_services</strong> directory is not in the SDK repository search path.</p>
+<p>You can check the box next to <strong>vbxware</strong> if you wish to include the VBXWare library in your BSP. However, <strong>do not</strong> check this box if you wish to compile and run the VectorBlox-supplied test programs because the Makefiles for these programs compile the VBXWare library separately from the BSP.</p></li>
+<li><p>In the same dialog box, click on <strong>drivers</strong> in the left panel. Check that the vectorblox_mxp driver is assigned to the vectorblox_mxp component. See below.</p>
+<div class="figure">
+<img src="images/xsdk_driver_assignment.png" />
+</div>
+<p>If the vectorblox_mxp driver is not available as an option, the likely reason is that the VectorBlox <strong>drivers</strong> directory is not in the SDK repository search path.</p></li>
+<li><p>Click <strong>OK</strong> to close the BSP Settings dialog box and compile the standalone BSP library <code>libxil.a</code>.</p></li>
+</ul>
+<h1 id="compiling_with_a_different_bsp"><span class="header-section-number">5</span> Compiling the Test Programs with a different Standalone BSP</h1>
+<p>To compile the programs in <code>TOPDIR/software/bmark</code> with a different standalone BSP, there are some additional steps you must take:</p>
+<ul>
+<li><p>Open the file <code>TOPDIR/software/common/xil_vars.mk</code> for editing.</p>
+<ul>
+<li><p>Change the <code>PROJ_ROOT</code> variable to point to the root of your project directory.</p></li>
+<li><p>Change the <code>BSP_ROOT_DIR</code> variable to point to the root of BSP directory. Ensure that <code>BSP_INC_DIR</code> and <code>BSP_LIB_DIR</code> point to the correct <code>include</code> and <code>lib</code> subdirectories.</p></li>
+<li><p>Change the <code>LD_SCRIPT</code> variable to point to the linker script you wish to use. In your linker script, use a stack size of 8 MB and a heap size of 64 MB if you want to be able to run all of the test programs.</p></li>
+</ul></li>
+<li><p>Create a file called <strong>bsp_vars.mk</strong> in <code>$(BSP_ROOT_DIR)</code> that defines the variables <code>CPU_FLAGS</code>, <code>PROCESSOR_TYPE</code>, and <code>PROCESSOR_INSTANCE</code>. <code>CPU_FLAGS</code> contains the compiler flags specific to the CPU configuration for your system. For example, on a MicroBlaze-based system, this might look like:</p>
+<pre><code>CPU_FLAGS := -mlittle-endian -mxl-barrel-shift \\
+  -mxl-pattern-compare -mcpu=v8.50.c -mno-xl-soft-mul</code></pre>
+<p>On an ARM-based system this would typically be empty, i.e.</p>
+<pre><code>CPU_FLAGS :=</code></pre>
+<p><code>PROCESSOR_TYPE</code> should be set to either <code>microblaze</code> or <code>cortexa9</code>; it determines which compiler and linker to use. <code>PROCESSOR_INSTANCE</code> should be the name of the CPU instance, usually <code>microblaze_0</code> or <code>ps7_cortexa9_0</code>. It is used to construct the <code>BSP_INC_DIR</code> and <code>BSP_LIB_DIR</code> variables (the paths to the BSP <code>include</code> and <code>lib</code> subdirectories).</p></li>
+</ul>
+</div>
+</div>
+</div>
+<script src="js/jquery-1.8.3.min.js"></script>
+<script src="js/jquery-ui-1.9.1.custom.min.js"></script>
+<script src="js/bootstrap.js"></script>
+<script src="js/jquery.tocify.min.js"></script>
+<script>
+$(function() {
+    var toc = $("#toc").tocify({
+        selectors: "h1, h2",
+        history: false,
+        smoothScrollSpeed: "fast",
+        }).data("toc-tocify");
+      $(".optionName").popover({ trigger: "hover" });
+});
+</script>
+</body>
+</html>

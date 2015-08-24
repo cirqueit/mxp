@@ -1,0 +1,501 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title>VectorBlox MXP Programming Guide for Xilinx</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+<link type="text/css" rel="stylesheet" href="css/bootstrap.css"/>
+<link type="text/css" rel="stylesheet" href="css/jquery.ui.all.css"/>
+<link type="text/css" rel="stylesheet" href="css/jquery.tocify.css"/>
+<style>
+body {
+    padding-top: 20px;
+}
+p {
+    font-size: 16px;
+}
+.headerDoc {
+    color: #005580;
+}
+
+@media (max-width: 767px) {
+    #toc {
+        position: relative;
+        width: 100%;
+        margin: 0px 0px 20px 0px;
+    }
+}
+</style>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-48667957-1', 'vectorblox.github.io');
+  ga('send', 'pageview');
+
+</script>
+</head>
+<body>
+<div class="container-fluid">
+<div class="row-fluid">
+<div class="span3">
+<div id="toc"></div>
+</div>
+<div class="span9">
+<div id="header">
+<h1 class="title">VectorBlox MXP Programming Guide for Xilinx</h1>
+</div>
+<h1 id="vectorblox_mxp"><span class="header-section-number">1</span> VectorBlox MXP</h1>
+<div class="figure">
+<img src="images/microblaze-mxp.png" alt="VectorBlox MXP System with MicroBlaze" /><p class="caption">VectorBlox MXP System with MicroBlaze</p>
+</div>
+<div class="figure">
+<img src="images/zynq-mxp.png" alt="VectorBlox MXP System with ARM Cortex-A9 in Zynq-7000 FPGAs" /><p class="caption">VectorBlox MXP System with ARM Cortex-A9 in Zynq-7000 FPGAs</p>
+</div>
+<h2 id="architecture_overview"><span class="header-section-number">1.1</span> Architecture Overview</h2>
+<p>The VectorBlox MXP matrix processor is an extremely high-performance processor capable of speedups in excess of 1000<span class="math"> × </span> faster than MicroBlaze or Nios II/f. The design of the processor was inspired by the vector processors used in scientific supercomputers made by Cray, Fujitsu and NEC. However, the MXP is not a simple clone of one of these processors. It has been redesigned from the ground up to perform well on embedded applications which operate primarily on various integer widths and fixed-point data types. It has also been designed from the start to map exceptionally well into modern FPGAs in a way that exploits their hard RAM blocks and hard multiplier or DSP blocks.</p>
+<p>The VectorBlox MXP matrix processor is an update on the classical vector processor. Instead of operating merely on vectors, it can also operate on 2D and 3D matrices. It performs parallel calculations directly on sets of data stored directly in a private scratchpad memory, rather than a register file.</p>
+<p>To achieve speedups in excess of 1000<span class="math"> × </span>, the VectorBlox MXP employs several strategies to maximize parallelism and to reduce overhead such as address calculations. This ensures the parallel ALUs employed by the MXP are working to their full potential on actual data calculations.</p>
+<p>The parallelism available in MXP exceeds that of traditional scalar CPUs, fixed-width SIMD operations, and even variable-length vector CPUs. This goes beyond the number of parallel ALUs employed, as we have witnessed speedups of 20<span class="math"> × </span> or higher using just a single vector lane! Here are some of the reasons why you may expect speedups that exceed the number of ALUs on your own code:</p>
+<ul>
+<li><p>Unlike scalar CPUs or fixed-width SIMD operations, loop counters and branches are not necessary and can be eliminated from the inner loop. This eliminates the overhead of counting/incrementing, comparisons, conditional branches, and branch mispredictions.</p></li>
+<li><p>Unlike traditional scalar vector CPUs, each ALU in MXP can perform 2 parallel calculations on halfwords (16-bit integers) or 4 parallel calculations on bytes (8-bit integers).</p></li>
+<li><p>Unlike scalar CPUs or fixed-width SIMD operations, load and store instructions are not necessary and can be eliminated from the inner loop. These normally transfer data from a cache to the register file, and may even result in a cache miss. Instead, the MXP operates memory-to-memory on data already in the scratchpad and never suffers from a cache miss.</p></li>
+<li><p>Traditional vector CPUs support a fixed number of named vectors, each with a maximum size. Instead, the MXP can partition its large and flexible scratchpad arbitrarily into any number of vectors, of any length, starting at any address, that is subject only to overall scratchpad capacity. This improves overall data availability and significantly reduces data copying.</p></li>
+<li><p>The MXP scratchpad is easily double-buffered, allowing all memory latency to be hidden.</p></li>
+</ul>
+<h2 id="scratchpad"><span class="header-section-number">1.2</span> Scratchpad</h2>
+<p>The MXP does not operate on data directly stored in memory. Instead, data must first be DMA-transferred into a private local memory called a scratchpad. Like a cache, the scratchpad is designed to provide fast, parallel access to data. However, unlike a cache, the scratchpad is not managed automatically for the programmer. Instead, the programmer must explicitly transfer data from host to scratchpad, or from scratchpad to host.</p>
+<p>The scratchpad is byte addressable. A vector, matrix, or submatrix is identified explicitly by a pointer to its starting address in the scratchpad. The contents of a vector are striped across several parallel block memories, allowing full parallel readout when a vector is accessed sequentially. All vector operations start at the lowest address and proceed to the highest address, subject to the length of the vector. Operations on long vectors are carried out over multiple clock cycles, one <strong><em>wavefront</em></strong> of data at a time. No matter what the starting address (aligned or not), a full wavefront which spans the full width of the scratchpad can always be read in one clock cycle.</p>
+<h2 id="data_organization"><span class="header-section-number">1.3</span> Data Organization: Vectors, 2D Matrices and 3D Matrices</h2>
+<p>The most efficient way to use MXP is to organize data in memory contiguously into vectors, or as packed 2D or packed 3D matrices.</p>
+<p>By a 2D packed matrix, we mean a series of rows of data that are placed end-to-end, possibly with some fixed amount of padding between each pair of adjacent rows. There must be a constant difference between the starting addresses of any two adjacent rows.</p>
+<p>By a 3D packed matrix, we mean a series of 2D matrices that are placed end-to-end, possibly with some fixed amount of padding between each pair of 2D adjacent matrices. There must be a constant difference between the starting addresses of any two adjacent 2D matrices.</p>
+<p>Before operating on any data, the MXP processor must also be told the size or dimensions of the vector or matrix. This information is provided to the processor in advance of the instructions and remembered in its configuration state.</p>
+<p>The minimal information required for vector instructions is the <strong><em>vector length</em></strong>. As will be described later, more information is also required for 2D and 3D matrix operations, such as the number of rows.</p>
+<h2 id="vector_instructions"><span class="header-section-number">1.4</span> Vector Instructions</h2>
+<p>A typical instruction is provided with three explicit operands: pointers to the destination, to the source operand A, and to the source operand B. In addition, type information is explicitly provided to specify the data element size (byte, halfword or word), signed or unsigned operation, as well as special cases for operands A and B. The special cases that are permitted are replacing vector operand A with a scalar value, and replacing vector operand B with an enumerated vector. An enumerated vector provides an ordinal number for each element indicating its position in the vector.</p>
+<h2 id="vector_lanes"><span class="header-section-number">1.5</span> Vector Lanes</h2>
+<div class="figure">
+<img src="images/mxp-scratchpad.png" alt="Quadruple-ported Scratchpad and Addressing" /><p class="caption">Quadruple-ported Scratchpad and Addressing</p>
+</div>
+<p>Calculations within MXP are performed by parallel 32-bit vector lanes. A processor configuration that is referred to as MXP-V4, for example, consists of four parallel vector lanes. Likewise, a V1 contains just one vector lane and V16 contains sixteen vector lanes.</p>
+<p>The vector lanes can be instructed to operate upon three different data sizes: bytes (8 bits), halfwords (16 bits), or words (32 bits). When operating on smaller data sizes, the amount of parallelism increases proportionately. That is, a V4 configuration can perform either 16 parallel byte-size operations per cycle, or 8 parallel halfword-size operations per cycle.</p>
+<p>Each lane contains a slice of the scratchpad memory, so wider vector processors are provided with a wider scratchpad memory. This scales the available memory bandwidth in a natural way to match the compute capacity of the MXP vector lanes.</p>
+<p>As shown in the figure above, the scratchpad contains four access ports, and each is byte-addressable. Two dedicated read ports and one dedicated write port allows the processor to read its operands and write back a result every clock cycle. The fourth port, a DMA port, can be dynamically configured to either read or write data. The DMA system can access the scratchpad without interrupting a computation in progress.</p>
+<p>Furthermore, addresses in the scratchpad are striped across the vector lanes, in a similar way that data blocks are striped across disks in RAID-0. Each lane can store one word, two halfwords, or four bytes. Hence, scratchpad addresses increase by 4 when crossing from one lane to an adjacent lane.</p>
+<p>Unlike a typical register-based processor, there is no preset limit imposed by the MXP instruction set architecture (ISA) on the number of vectors or the vector length. However, the size of the scratchpad forms a practical upper bound on the vector length and various other matrix parameters. Hence, at one extreme, the entire scratchpad can be filled by a single vector of bytes. At the other extreme, the entire scratchpad can be filled entirely by vectors that are each one byte long.</p>
+<div class="figure">
+<img src="images/mxp-arch.png" alt="VectorBlox MXP Vector Engine" /><p class="caption">VectorBlox MXP Vector Engine</p>
+</div>
+<p>While the ISA does not limit the number of vectors stored in the scratchpad, it is important to note that all scratchpad pointers are calculated and stored by the host scalar processor. Since the scalar register file is fixed in size and the operation of many registers are predetermined by its compiler application binary interface (ABI) specifications, using more than 8 to 16 vectors will likely involve spilling contents of the scalar register file to main memory.</p>
+<h1 id="programming_model"><span class="header-section-number">2</span> Programming Model</h1>
+<p>Programs written for the VectorBlox MXP use a combination of ANSI-C with VectorBlox C extensions. Basic ANSI-standard C code is run entirely on the host scalar processor. The VectorBlox C extensions are used to to specify the data-parallel operations that are to be computed by the MXP vector engine. These extensions are especially useful for image processing and similar applications where operations are applied to sets of data (such as pixels). The VectorBlox MXP Matrix Processor provides two engines that run completely in parallel with the host processor: the MXP DMA engine, and the MXP vector engine.</p>
+<h2 id="mxp_dma_engine"><span class="header-section-number">2.1</span> MXP DMA Engine</h2>
+<p>The MXP direct-memory access (DMA) engine provides a means to perform block data transfers between the host’s external memory and the vector scratchpad. These transfers are performed asynchronously from the host processor.</p>
+<p>The contents of the scratchpad are not managed automatically like a cache. Instead, the programmer must explicitly transfer memory from the host to the vector scratchpad, or vice versa.</p>
+<p>Only one DMA transfer can be active at a time. Additional requests are queued by the system until the active transfer is complete. To ensure correctness, DMA transfers are always executed in FIFO or program order. Since DMA transfers can be interleaved with vector instructions, they are deposited into a common <strong><em>Instruction and DMA Request Queue</em></strong>. The MXP processor will automatically allow DMA transfers to bypass in-flight instructions, or vice versa, provided there are no data hazards between them. These data hazards are determined exclusively by the scratchpad address(es) being read or written. When a hazard exists, the MXP processor will insert a bubble into the pipeline, allowing current operations to complete before allowing a hazardous operation to make forward progress.</p>
+<h2 id="mxp_vector_engine"><span class="header-section-number">2.2</span> MXP Vector Engine</h2>
+<p>The MXP vector engine operates naturally on 8 bit bytes, 16 bit halfwords, or 32 bit words. The engine is organized into a set of vector lanes, where refer to the size of the vector engine as V1 or V128 for 1 or 128 vector lanes, respectively. The number of lanes must be a power of 2, where each lane incorporates a 32-bit ALU and a 32-bit slice of the scratchpad. Each vector lane can be subdivided on an instruction-by-instruction basis into two halflanes which operate on halfwords, or four bytelanes which operate on bytes. Thus, maximum parallelism is provided on byte-wide data.</p>
+<p>The vector lanes of the MXP vector engine are only one means of achieving parallel execution. Even a single-lane MXP V1 with one 32-bit ALU can provide speedups over 20x compared to the host processor. This parallelism may come from many sources:</p>
+<ul>
+<li><p>byte or halfword parallelism</p></li>
+<li><p>elimination of load and store instructions from the instruction stream</p></li>
+<li><p>double-buffered asynchronous DMA operations overlap memory latency with computation</p></li>
+<li><p>hardware-based loop counters and auto-incrementing address arithmetic</p></li>
+<li><p>hardware-based looping avoids branch mispredictions</p></li>
+<li><p>overlapped scalar instructions with vector instructions and DMA operations</p></li>
+</ul>
+<h2 id="mxp_programming_overview"><span class="header-section-number">2.3</span> MXP Programming Overview</h2>
+<p>The general process for programming the MXP is:</p>
+<ol style="list-style-type: decimal">
+<li><p>Allocate vectors in scratchpad.</p></li>
+<li><p>Transfer data from memory to scratchpad.</p></li>
+<li><p>Operate on vectors in scratchpad.</p></li>
+<li><p>Transfer data from scratchpad to memory.</p></li>
+<li><p>Deallocate vectors in scratchpad.</p></li>
+</ol>
+<p>The scratchpad is a region of fast, on-chip parallel memory for holding and operating upon vector data. A minimum of 4KB per vector lane is provided, and this is usually enough for most applications.</p>
+<p>The scratchpad is addressable by the scalar host, but care must be taken whether to cache the scratchpad or not. By default, scratchpad addresses are cached.</p>
+<p>A simple vector program which adds three vectors is provided below:</p>
+<h3 id="simple"><span class="header-section-number">2.3.1</span> Simple Example</h3>
+<pre class="sourceCode c"><code class="sourceCode c">
+<span class="ot">#include &quot;vbx.h&quot;</span>
+
+<span class="dt">int</span> A[] = {<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>};
+<span class="dt">int</span> B[] = {<span class="dv">5</span>, <span class="dv">6</span>, <span class="dv">7</span>, <span class="dv">8</span>};
+<span class="dt">int</span> C[] = {-<span class="dv">1</span>, -<span class="dv">1</span>, -<span class="dv">1</span>, -<span class="dv">1</span>};
+<span class="dt">int</span> main()
+{
+    <span class="dt">int</span> vector_len = <span class="dv">4</span>;
+    <span class="dt">int</span> num_bytes = vector_len * <span class="kw">sizeof</span>(<span class="dt">int</span>);
+
+    <span class="co">/* step 1 */</span>
+    vbx_word_t * v_a = vbx_sp_malloc( num_bytes );
+    vbx_word_t * v_b = vbx_sp_malloc( num_bytes );
+    vbx_word_t * v_c = vbx_sp_malloc( num_bytes );
+
+    <span class="co">/* step 2 */</span>
+    vbx_dma_to_vector( v_a, A, num_bytes );
+    vbx_dma_to_vector( v_b, B, num_bytes );
+
+    <span class="co">/* step 3 */</span>
+    vbx_set_vl( vector_len );
+    vbx( VVW, VADD, v_c, v_a, v_b );
+
+    <span class="co">/* step 4 */</span>
+    vbx_dma_to_host( C, v_c, num_bytes );
+
+    <span class="co">/* step 5 */</span>
+    vbx_sp_free();
+
+    vbx_sync();
+    printf( <span class="st">&quot;C[] = %d, %d, %d, %d</span><span class="ch">\n</span><span class="st">&quot;</span>,
+    C[<span class="dv">0</span>], C[<span class="dv">1</span>], C[<span class="dv">2</span>], C[<span class="dv">3</span>] );
+
+    <span class="kw">return</span> <span class="dv">0</span>;
+}</code></pre>
+<p>This example could possibly run into some caching issues, information on how to avoid these issues, as well as using dynamic allocation can be found in the <a href="#data_sharing">data-sharing section</a>.</p>
+<h1 id="scalar_cpu_programming"><span class="header-section-number">3</span> MicroBlaze and ARM Programming</h1>
+<p>The MicroBlaze host processor has the following properties:</p>
+<ul>
+<li><p>3- or 5-stage pipeline, roughly 1 instruction per clock cycle</p></li>
+<li><p>single-issue, in-order execution</p></li>
+<li><p>4GB address space</p></li>
+<li><p>optional direct-mapped, non-coherent caches</p></li>
+</ul>
+<p>VectorBlox typically configures the MicroBlaze in its demonstration systems as follows:</p>
+<ul>
+<li><p>5-stage pipeline</p></li>
+<li><p>8KB instruction cache with 8-word cache lines</p></li>
+<li><p>4KB write-back data cache with 8-word cache lines</p></li>
+<li><p>no MMU</p></li>
+<li><p>hardware multiplier (one cycle latency)</p></li>
+<li><p>hardware barrel shifter</p></li>
+<li><p>support for pattern compare instructions</p></li>
+<li><p>branch target cache with 256 entries</p></li>
+</ul>
+<p>Xilinx Zynq-7000 FPGAs contain two ARM Cortex-A9 CPUs with the following properties:</p>
+<ul>
+<li><p>variable-length pipeline</p></li>
+<li><p>up to two instructions issued per cycle</p></li>
+<li><p>support for out-of-order execution</p></li>
+<li><p>branch prediction using a 4096-entry global branch history buffer (GHB) and a 512-entry branch target address cache (BTAC)</p></li>
+<li><p>4GB address space</p></li>
+<li><p>memory management unit for address translation and access protection</p></li>
+<li><p>NEON Media Processing Engine supporting the ARM v7 advanced SIMD and vector floating-point v3 (VFPv3) instruction sets</p></li>
+<li><p>32KB L1 instruction and data caches, 4-way set-associative, write-back, 32-byte cache line size</p></li>
+<li><p>512KB L2 cache shared by both Cortex-A9 cores, 8-way set-associative, write-through or write-back, 32-byte cache line size</p></li>
+</ul>
+<h2 id="caching"><span class="header-section-number">3.1</span> Caching</h2>
+<p>MicroBlaze does not provide any mechanism for hardware cache coherence. Hence, programmers must manually flush the instruction or data cache when necessary (e.g. when data needs to be shared with another bus master). Flushing consists of writing back a data cache line (if dirty), and then invalidating the cache line.</p>
+<p>The ARM Cortex-A9 MPCore subsystem in the Zynq-7000 FPGAs incorporates two Cortex-A9 CPU cores and a Snoop Control Unit (SCU). The SCU manages data cache coherency between the two Cortex-A9 CPUs and provides an Accelerator Coherency Port (ACP) AXI Slave to simplify sharing of data with other bus masters (such as DMA engines) as long as they don't have their own caches. Reads over the ACP are first looked up in the CPU caches and writes over the ACP will invalidate any affected cache lines in the CPU caches, so the programmer does not have to perform explicit data cache flushing to share data with ACP-connected bus masters. However, if a bus master needs to move a large amount of data that does not need to be frequently accessed by the Cortex-A9 CPUs, it may not be efficient to use the ACP. VectorBlox does not currently support connection of the MXP DMA engine to the ACP, so the programmer will still need to properly manage the caches when sharing data withe MXP.</p>
+<p>Xilinx’s Standalone BSP provides two functions to flush the data cache:</p>
+<ul>
+<li><p><code>#include &quot;xil_cache.h&quot;</code> (required header file)</p></li>
+<li><p><code>Xil_DCacheFlush()</code> flushes the entire data cache.</p></li>
+<li><p><code>Xil_DCacheFlushRange(Addr, Len)</code> flushes the specified memory region from the data cache.</p></li>
+</ul>
+<p>Similarly, the instruction cache can be invalidated with</p>
+<ul>
+<li><p><code>Xil_ICacheInvalidate()</code>, or</p></li>
+<li><p><code>Xil_ICacheInvalidateRange(Addr, Len)</code></p></li>
+</ul>
+<p>Note that <code>Xil_DCacheFlushRange()</code> must walk through the entire memory region of <code>Len</code> bytes (incrementing by the cache line size in the inner loop). For a sufficiently large memory region, it will be faster to just flush the entire data cache and start over.</p>
+<h2 id="vbx_portability_library"><span class="header-section-number">3.2</span> VBX Portability Library</h2>
+<p>To simplify the porting of MXP programs between different scalar host CPUs (e.g. MicroBlaze and ARM Cortex-A9), VectorBlox provides a common cache management and timestamp timer API.</p>
+<p>The functions in the portability library are listed below. More details can be found in the <em>VectorBlox MXP Programming Reference</em>.</p>
+<pre class="sourceCode c"><code class="sourceCode c">    vbx_timestamp_start()
+    vbx_timestamp_freq()
+    vbx_timestamp()
+    vbx_uncached_malloc()
+    vbx_uncached_free()
+    vbx_dcache_flush_all()
+    vbx_dcache_flush(PTR,len) or vbx_dcache_flush_line(PTR)
+    vbx_remap_cached(PTR,len)
+    vbx_remap_uncached(PTR) or vbx_remap_uncached_flush(PTR,len)</code></pre>
+<p>The cache management calls assume that memory accesses can bypass the data cache by setting address bit 31 to 1. The section on <a href="#uncached_access">uncached access to cached memory regions</a> describes how this can be accomplished on MicroBlaze and ARM Cortex-A9 systems.</p>
+<ul>
+<li><p><code>vbx_dcache_flush(PTR,len)</code> considers the length of data being flushed. If it is too large, it will flush the entire data cache instead. Xilinx’s version loops over the entire length of the data.</p></li>
+<li><p><code>vbx_remap_uncached(PTR)</code> remaps and flushes only a single cache line</p></li>
+<li><p><code>vbx_remap_uncached_flush(PTR,len)</code> remaps and flushes a region, but the region is flushed using <code>vbx_dcache_flush(PTR,len)</code></p></li>
+</ul>
+<p>The functions below convert a pointer between cached and uncached mode by toggling bit 31:</p>
+<ul>
+<li><p><code>void *vbx_remap_cached(volatile void *ptr, u32 len)</code> returns a cached pointer.</p></li>
+<li><p><code>volatile void *vbx_remap_uncached_flush(void *ptr, u32 len)</code> returns an uncached pointer. When mapping to uncached, the memory region will also be flushed.</p></li>
+</ul>
+<p>The functions below allocate and deallocate uncached memory:</p>
+<ul>
+<li><p><code>volatile void *vbx_uncached_malloc (size_t size)</code> allocates memory, returns an uncached pointer.</p></li>
+<li><p><code>void vbx_uncached_free(volatile void *ptr)</code> unallocates an uncached region.</p></li>
+</ul>
+<h2 id="mxp_initialization_with_bsp"><span class="header-section-number">3.3</span> MXP Initialization with a Standalone BSP</h2>
+<h3 id="vbx_timestamp-initialization"><span class="header-section-number">3.3.1</span> vbx_timestamp Initialization</h3>
+<p>In order to use the <code>vbx_timestamp*()</code> functions, the system must provide some sort of hardware timer.</p>
+<p>On MicroBlaze-based systems, the <code>vbx_timestamp</code> functions require an an axi_timer instance. The axi_timer instance must be registered with Xilinx’s TmrCtr driver, as well as with the <code>vbx_timestamp</code> functions. Initialization can be done as follows (replace <code>TMRCTR_0</code> with the canonical instance ID of the timer instance you wish to use):</p>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="ot">#include &quot;xparameters.h&quot;</span>
+<span class="ot">#include &quot;xil_types.h&quot;</span>
+<span class="ot">#include &quot;vbx.h&quot;</span>
+<span class="ot">#include &quot;xtmrctr.h&quot;</span>
+
+XTmrCtr vbx_tmr_inst;
+
+<span class="dt">void</span> my_vbx_tmr_init()
+{
+    <span class="dt">int</span> status;
+    u16 tmrctr_dev_id  = XPAR_TMRCTR_0_DEVICE_ID;
+    u32 tmrctr_freq_hz = XPAR_TMRCTR_0_CLOCK_FREQ_HZ;
+
+    status = XTmrCtr_Initialize(&amp;vbx_tmr_inst, tmrctr_dev_id);
+    <span class="kw">if</span> (status != XST_SUCCESS) {
+        VBX_PRINTF(<span class="st">&quot;ERROR: XTmrCtr_Initialize failed.</span><span class="ch">\n</span><span class="st">&quot;</span>);
+        VBX_FATAL(__LINE__, __FILE__, -<span class="dv">1</span>);
+    }
+    vbx_timestamp_init(&amp;vbx_tmr_inst, tmrctr_freq_hz);
+}</code></pre>
+<p>On ARM-based systems, the <code>vbx_timestamp</code> functions make use of the Cortex-A9's PMU timer. The PMU timer's frequency must be registered with the <code>vbx_timestamp</code> functions as in this example (the PMU timer runs at half the CPU frequency):</p>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="ot">#include &quot;xparameters.h&quot;</span>
+<span class="ot">#include &quot;xil_types.h&quot;</span>
+<span class="ot">#include &quot;vbx.h&quot;</span>
+
+<span class="dt">void</span> my_vbx_tmr_init()
+{
+    u32 tmrctr_freq_hz = XPAR_CPU_CORTEXA9_0_CPU_CLK_FREQ_HZ/<span class="dv">2</span>;
+    vbx_timestamp_init(tmrctr_freq_hz);
+}</code></pre>
+<h3 id="mapping-instruction-port-to-device-memory-arm-systems-only"><span class="header-section-number">3.3.2</span> Mapping Instruction Port to Device Memory (ARM systems only)</h3>
+<p>On ARM systems, the MMU should be configured to set the memory type of the the MXP's AXI Instruction Slave port to &quot;Device memory&quot;, so that writes to the instruction port bypass the data caches and are posted (do not wait for acknowledgement from the final destination).</p>
+<p>The following shows how this can be done using <code>Xil_SetTlbAttributes()</code> from the standalone BSP:</p>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="ot">#include &quot;xil_mmu.h&quot;</span>
+
+<span class="kw">extern</span> u32 MMUTable;
+
+<span class="dt">int</span> vbx_zynq_set_instr_port_device_memory()
+{
+    <span class="co">// Change memory attributes of 1MB region starting at base address of</span>
+    <span class="co">// AXI instruction port.</span>
+    <span class="co">// shareable device:</span>
+    <span class="co">//   S=b0 TEX=b000 AP=b11, C=b0, B=b1 =&gt; 0xC06</span>
+    Xil_SetTlbAttributes(XPAR_VECTORBLOX_MXP_ARM_0_S_AXI_INSTR_BASEADDR,
+                         <span class="bn">0xc06</span>);
+    <span class="kw">return</span> XST_SUCCESS;
+}</code></pre>
+<h3 id="uncached_access"><span class="header-section-number">3.3.3</span> Support for Uncached Access to Cached Memory Region</h3>
+<p>The VBX API library provides some functions to simplify sharing of data between the host CPU and the MXP without requiring the application programmer to explicitly flush data cache lines. These functions include <code>vbx_shared_malloc()</code>, <code>vbx_shared_free()</code>, <code>vbx_remap_uncached()</code>, and <code>vbx_remap_cached()</code>.</p>
+<p>The library assumes that the host CPU can access a cached memory region in an uncached manner (i.e. bypassing the data cache) simply by setting the most significant bit of the address to 1.</p>
+<p>MicroBlaze does not have a built-in mechanism to bypass the data cache this way, but the same functionality can be added by adding some bus connections and placing some restrictions on the MicroBlaze’s address map. Details can be found in the <em>MXP-M Quickstart Guide</em> that is distributed with the hardware IP core.</p>
+<p>On an ARM-based system, the translation table in the CPU's Memory Management Unit (MMU) can be used to alias the physical address range of a shared memory to two logical address ranges that differ only in address bit 31. The memory attributes of the lower address range are set to &quot;normal cacheable&quot;, whereas the attributes of the upper address range are set to &quot;strongly-ordered&quot; to make the region non-cacheable.</p>
+<p>For example, on the ZedBoard, the physical address range of the DDR3 DRAM is 0x0-0x1fff_ffff (512MB) and the virtual address range 0x0-0x1fff_ffff is mapped to this physical range and the memory attribute set to cacheable. The virtual address range 0x8000_0000 to 0x9fff_ffff (512 MB) can also be mapped to the same physical address range but with the memory attribute set to strongly-ordered, allowing uncached access to DRAM.</p>
+<p>The <code>vbx_zynq_remap_ddr_uncached()</code> function in <code>software/lib/vbxtest/vbx_test.c</code> illustrates how this can be done:</p>
+<pre class="sourceCode c"><code class="sourceCode c"><span class="ot">#include &quot;xpseudo_asm.h&quot;</span>
+<span class="ot">#include &quot;xil_mmu.h&quot;</span>
+
+<span class="kw">extern</span> u32 MMUTable;
+
+<span class="co">// Map (virtual) address range 0x8000_0000 to 0x9fff_ffff (512 MB) to</span>
+<span class="co">// DDR physical address range 0x0-0x1fff_ffff and set memory attributes to</span>
+<span class="co">// strongly-ordered.</span>
+<span class="co">// Based in Xil_SetTlbAttributes() in xil_mmu.c.</span>
+<span class="dt">int</span> vbx_zynq_remap_ddr_uncached()
+{
+    u32 addr;
+    <span class="co">// Section descriptor bits 19:0 for</span>
+    <span class="co">// strongly-ordered:</span>
+    <span class="co">//   S=b0 TEX=b000 AP=b11, C=b0, B=b0 =&gt; 0xC02</span>
+    <span class="co">// (Short-descriptor translation table format, FigB3-4, p. B3-1325 of</span>
+    <span class="co">// ARM Architecture Reference Manual DDI0406C.b)</span>
+    u32 attrib = <span class="bn">0xc02</span>;
+    u32 *ptr;
+    u32 section;
+
+    mtcp(XREG_CP15_INVAL_UTLB_UNLOCKED, <span class="dv">0</span>);
+    dsb();
+
+    <span class="co">// One descriptor per 1 MB region; iterate over 512 descriptors covering</span>
+    <span class="co">// 512MB in range 0x8000_0000 to 0x9fff_ffff.</span>
+    <span class="kw">for</span> (addr = <span class="bn">0x80000000</span>; addr &lt; <span class="bn">0xa0000000</span>; addr += <span class="bn">0x100000</span>) {
+        <span class="co">// Index into translation table</span>
+        section = addr / <span class="bn">0x100000</span>;
+        ptr = &amp;MMUTable + section;
+        <span class="co">// Map to physical addresses in range 0x0 to 0x1fff_ffff,</span>
+        <span class="co">// i.e. clear bit 31.</span>
+        *ptr = (addr &amp; <span class="bn">0x7FF00000</span>) | attrib;
+    }
+    dsb();
+
+    mtcp(XREG_CP15_INVAL_UTLB_UNLOCKED, <span class="dv">0</span>);
+    <span class="co">/* Invalidate all branch predictors */</span>
+    mtcp(XREG_CP15_INVAL_BRANCH_ARRAY, <span class="dv">0</span>);
+
+    dsb(); <span class="co">/* ensure completion of the BP and TLB invalidation */</span>
+    isb(); <span class="co">/* synchronize context on this processor */</span>
+
+    <span class="kw">return</span> XST_SUCCESS;
+}</code></pre>
+<h1 id="data_sharing"><span class="header-section-number">4</span> Data Sharing</h1>
+<p>The code in the following subsections are variations of the vector addition code given earlier (<a href="#simple">simple example</a>) using the VBX Portability Library.</p>
+<p>The original code has no caching issues because the data is statically allocated in the data segment, so it is initialized into the data segment and untouched by the processor. However, the new code uses the processor to dynamically allocate and initialize the data, hence a copy of the data may be residing in the cache.</p>
+<p>However, the <a href="#flushed">first example</a> shows one approach of managing cache coherence by flushing the shared regions out of the data cache. The source memory regions, <code>A</code> and <code>B</code>, must be flushed before the DMA transfer because the CPU has modified their values and dirty lines are being retained in the write-back cache. The memory region for the final answer, <code>C</code>, must be flushed because a stale copy or dirty copy may be in the data cache. Even if the CPU did not initialize the array <code>C</code>, elements at the beginning or end of C may have been brought into the cache because of locality and the sharing of cache lines with adjacent data. As a result, it can be difficult to keep track of whether to flush the data.</p>
+<p>Instead, the <a href="#uncached">second example</a> shows our preferred approach of managing cache coherence. It works by marking shared regions as uncached data during allocation. Then, all scalar accesses will be to uncached data, but there will not be any coherence issues. This is the easiest way to program, but it may result in performance issues when the scalar processor initializes shared inputs or reads shared results. We still recommend this style, but suggest that you address performance issues by explicitly switching to a cached pointer where necessary. This is shown for array <code>A</code> in <a href="#cached">the final example</a>.</p>
+<h2 id="data_sharing_examples"><span class="header-section-number">4.1</span> Data Sharing Examples</h2>
+<h3 id="flushed"><span class="header-section-number">4.1.1</span> Example showing flushing of cached regions</h3>
+<pre class="sourceCode c"><code class="sourceCode c">
+<span class="ot">#include &quot;vbx.h&quot;</span>
+<span class="ot">#include &quot;vbx_port.h&quot;</span>
+
+<span class="dt">int</span> main()
+{
+    <span class="dt">int</span> A[] = {<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>};
+    <span class="dt">int</span> B[] = {<span class="dv">5</span>, <span class="dv">6</span>, <span class="dv">7</span>, <span class="dv">8</span>};
+    <span class="dt">int</span> C[] = {-<span class="dv">1</span>, -<span class="dv">1</span>, -<span class="dv">1</span>, -<span class="dv">1</span>};
+
+    <span class="dt">int</span> vector_len = <span class="dv">4</span>;
+    <span class="dt">int</span> num_bytes = vector_len * <span class="kw">sizeof</span>(<span class="dt">int</span>);
+
+    <span class="co">/* step 1 */</span>
+    vbx_word_t *va = vbx_sp_malloc( num_bytes );
+    vbx_word_t *vb = vbx_sp_malloc( num_bytes );
+    vbx_word_t *vc = vbx_sp_malloc( num_bytes );
+
+    <span class="co">/* step 2 */</span>
+    vbx_dcache_flush( A, num_bytes );
+    vbx_dcache_flush( B, num_bytes );
+    vbx_dma_to_vector( va, A, num_bytes );
+    vbx_dma_to_vector( vb, B, num_bytes );
+
+    <span class="co">/* step 3 */</span>
+    vbx_set_vl( vector_len );
+    vbx( VVW, VADD, vc, va, vb );
+
+    <span class="co">/* step 4 */</span>
+    vbx_dcache_flush( C, num_bytes );
+    vbx_dma_to_host( C, vc, num_bytes );
+
+    <span class="co">/* step 5 */</span>
+    vbx_sp_free();
+
+    printf( <span class="st">&quot;C[] = %d, %d, %d, %d</span><span class="ch">\n</span><span class="st">&quot;</span>,
+             C[<span class="dv">0</span>], C[<span class="dv">1</span>], C[<span class="dv">2</span>], C[<span class="dv">3</span>] );
+    <span class="kw">return</span> <span class="dv">0</span>;
+}</code></pre>
+<h3 id="uncached"><span class="header-section-number">4.1.2</span> Example with shared regions allocated as uncached</h3>
+<pre class="sourceCode c"><code class="sourceCode c">
+<span class="ot">#include &quot;vbx.h&quot;</span>
+
+<span class="dt">int</span> main()
+{
+    <span class="dt">int</span> vector_len = <span class="dv">4</span>;
+    <span class="dt">int</span> num_bytes = vector_len * <span class="kw">sizeof</span>(<span class="dt">int</span>);
+
+    <span class="dt">int</span> *A; A = vbx_shared_malloc( num_bytes );
+    <span class="dt">int</span> *B; B = vbx_shared_malloc( num_bytes );
+    <span class="dt">int</span> *C; C = vbx_shared_malloc( num_bytes );
+
+    A[<span class="dv">0</span>] = <span class="dv">1</span>; A[<span class="dv">1</span>] = <span class="dv">2</span>; A[<span class="dv">2</span>] = <span class="dv">3</span>; A[<span class="dv">3</span>] = <span class="dv">4</span>;
+    B[<span class="dv">0</span>] = <span class="dv">5</span>; B[<span class="dv">1</span>] = <span class="dv">6</span>; B[<span class="dv">2</span>] = <span class="dv">7</span>; B[<span class="dv">3</span>] = <span class="dv">8</span>;
+
+    <span class="co">/* step 1 */</span>
+    vbx_word_t *va = vbx_sp_malloc( num_bytes );
+    vbx_word_t *vb = vbx_sp_malloc( num_bytes );
+    vbx_word_t *vc = vbx_sp_malloc( num_bytes );
+
+    <span class="co">/* step 2 */</span>
+    vbx_dma_to_vector( va, A, num_bytes );
+    vbx_dma_to_vector( vb, B, num_bytes );
+
+    <span class="co">/* step 3 */</span>
+    vbx_set_vl( vector_len );
+    vbx( VVW, VADD, vc, va, vb );
+
+    <span class="co">/* step 4 */</span>
+    vbx_dma_to_host( C, vc, num_bytes );
+
+    <span class="co">/* step 5 */</span>
+    vbx_sp_free();
+
+    printf( <span class="st">&quot;C[] = %d, %d, %d, %d</span><span class="ch">\n</span><span class="st">&quot;</span>,
+             C[<span class="dv">0</span>], C[<span class="dv">1</span>], C[<span class="dv">2</span>], C[<span class="dv">3</span>] );
+    <span class="kw">return</span> <span class="dv">0</span>;
+}</code></pre>
+<h3 id="cached"><span class="header-section-number">4.1.3</span> Example combining shared (uncached) and cached regions</h3>
+<pre class="sourceCode c"><code class="sourceCode c">
+<span class="ot">#include &quot;vbx.h&quot;</span>
+<span class="ot">#include &quot;vbx_port.h&quot;</span>
+
+<span class="dt">int</span> main()
+{
+    <span class="dt">int</span> vector_len = <span class="dv">4</span>;
+    <span class="dt">int</span> num_bytes = vector_len * <span class="kw">sizeof</span>(<span class="dt">int</span>);
+
+    <span class="dt">int</span> *A; A = vbx_shared_malloc( num_bytes );
+    <span class="dt">int</span> *B; B = vbx_shared_malloc( num_bytes );
+    <span class="dt">int</span> *C; C = vbx_shared_malloc( num_bytes );
+
+    <span class="dt">int</span> *cachedA = vbx_remap_cached( A, num_bytes );
+    cachedA[<span class="dv">0</span>] = <span class="dv">1</span>; cachedA[<span class="dv">1</span>] = <span class="dv">2</span>;
+    cachedA[<span class="dv">2</span>] = <span class="dv">3</span>; cachedA[<span class="dv">3</span>] = <span class="dv">4</span>; <span class="co">// cached, faster</span>
+    vbx_dcache_flush( cachedA, num_bytes );
+    B[<span class="dv">0</span>] = <span class="dv">5</span>; B[<span class="dv">1</span>] = <span class="dv">6</span>;
+    B[<span class="dv">2</span>] = <span class="dv">7</span>; B[<span class="dv">3</span>] = <span class="dv">8</span>; <span class="co">// uncached, slower</span>
+
+    vbx_word_t *va = vbx_sp_malloc( num_bytes );
+    vbx_word_t *vb = vbx_sp_malloc( num_bytes );
+    vbx_word_t *vc = vbx_sp_malloc( num_bytes );
+  
+    vbx_dma_to_vector( va, A, num_bytes );
+    vbx_dma_to_vector( vb, B, num_bytes );
+  
+    vbx_set_vl( vector_len );
+    vbx( VVW, VADD, vc, va, vb );
+  
+    vbx_dma_to_host( C, vc, num_bytes );
+  
+    vbx_sp_free();
+  
+    printf( <span class="st">&quot;C[] = %d, %d, %d, %d</span><span class="ch">\n</span><span class="st">&quot;</span>,
+             C[<span class="dv">0</span>], C[<span class="dv">1</span>], C[<span class="dv">2</span>], C[<span class="dv">3</span>] );
+    <span class="kw">return</span> <span class="dv">0</span>;
+}</code></pre>
+</div>
+</div>
+</div>
+<script src="js/jquery-1.8.3.min.js"></script>
+<script src="js/jquery-ui-1.9.1.custom.min.js"></script>
+<script src="js/bootstrap.js"></script>
+<script src="js/jquery.tocify.min.js"></script>
+<script>
+$(function() {
+    var toc = $("#toc").tocify({
+        selectors: "h1, h2",
+        history: false,
+        smoothScrollSpeed: "fast",
+        }).data("toc-tocify");
+      $(".optionName").popover({ trigger: "hover" });
+});
+</script>
+</body>
+</html>
