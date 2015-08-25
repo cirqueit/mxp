@@ -4,7 +4,7 @@
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <meta http-equiv="Content-Style-Type" content="text/css" />
   <meta name="generator" content="pandoc" />
-  <title>VectorBlox MXP Preview: Supported Altera Development Boards</title>
+  <title>VectorBlox MXP: Supported Example Development Boards</title>
   <style type="text/css">code{white-space: pre;}</style>
   <style type="text/css">
 table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
@@ -66,7 +66,7 @@ p {
 </div>
 <div class="span9">
 <div id="header">
-<h1 class="title">VectorBlox MXP Preview: Supported Altera Development Boards</h1>
+<h1 class="title">VectorBlox MXP: Supported Example Development Boards</h1>
 </div>
 <p>Pre-built FPGA bitstreams of VectorBlox MXP systems are available for the development boards listed here.</p>
 <p><strong>The bitstreams are for evaluation purposes only.</strong> VectorBlox licenses the MXP processor as a soft-core for use in FPGA designs.</p>
@@ -76,45 +76,7 @@ h='&#118;&#x65;&#x63;&#116;&#x6f;&#114;&#98;&#108;&#x6f;&#120;&#46;&#x63;&#x6f;&
 document.write('<a h'+'ref'+'="ma'+'ilto'+':'+e+'">'+e+'<\/'+'a'+'>');
 // -->
 </script><noscript>&#x69;&#110;&#102;&#x6f;&#32;&#x61;&#116;&#32;&#118;&#x65;&#x63;&#116;&#x6f;&#114;&#98;&#108;&#x6f;&#120;&#32;&#100;&#x6f;&#116;&#32;&#x63;&#x6f;&#x6d;</noscript> if you would like to evaluate the VectorBlox MXP processor on a development board not listed here.</p>
-<h1 id="de2_115"><span class="header-section-number">1</span> Altera DE2-115 Development and Education Board</h1>
-<div class="figure">
-<img src="http://www.altera.com/education/univ/images/boards/de2_115.jpg" />
-</div>
-<p>The DE2-115 contains an Altera Cyclone IV EP4CE115 FPGA, 128MB of SDRAM, 2MB of SRAM, 8MB of flash memory, a VGA DAC, and various other I/O interfaces including Gigabit Ethernet and USB.</p>
-<p>More information can be found here:</p>
-<ul>
-<li><a href="http://www.altera.com/education/univ/materials/boards/de2-115/unv-de2-115-board.html">http://www.altera.com/education/univ/materials/boards/de2-115/unv-de2-115-board.html</a></li>
-<li><a href="http://www.terasic.com.tw/cgi-bin/page/archive.pl?Language=English&amp;CategoryNo=165&amp;No=502&amp;PartNo=1">http://www.terasic.com.tw/cgi-bin/page/archive.pl?Language=English&amp;CategoryNo=165&amp;No=502&amp;PartNo=1</a></li>
-</ul>
-<p>We provide pre-built bitstreams for the DE2-115 for various sizes of the MXP processor (2/4/8/16 vector lanes) connected to a Nios II/f CPU. The systems also contain an SDRAM controller and a frame reader that reads video frames from DRAM and sends them to the VGA port at 800x600 @ 60Hz.</p>
-<p>A BSP using Altera's Nios II Hardware Abstraction Layer (HAL) is included for each system.</p>
-<p>The bitstreams and BSPs were created with Quartus 13.1.</p>
-<p>The MXP processor in each system is configured as follows:</p>
-<ul>
-<li>100 MHz.</li>
-<li>64 KB of scratchpad memory.</li>
-<li>32-bit wide DMA interface.</li>
-<li>Fractional bits for fixed-point multiplication: 16 fractional bits for words, 15 for halfwords, 4 for bytes.</li>
-<li>Three custom instructions:
-<ul>
-<li>fixed-point division (VCUSTOM0)</li>
-<li>fixed-point square root (VCUSTOM1)</li>
-<li>particle repulsion force calculation (for demo program) (VCUSTOM3)</li>
-</ul></li>
-<li>The custom instructions are two logical lanes wide (vci_lanes=2).</li>
-</ul>
-<p>See the <a href="#custom_instructions">section below</a> for details on how to use the custom instructions.</p>
-<p>The demonstration program in <code>software/demo/de2_115</code> shows how the MXP processor can be used to generate video frames and how to set up the frame reader to fetch frame data from memory and send it to the VGA output.</p>
-<p>A Qsys interconnection diagram with Avalon-MM, Avalon-ST, Nios custom instruction and MXP custom instruction buses is shown below.</p>
-<h2 id="qsys-interconnection-diagram"><span class="header-section-number">1.1</span> Qsys Interconnection Diagram</h2>
-<div class="figure">
-<img src="images/de2_115_vga_connect.png" alt="Qsys Interconnection Diagram" /><p class="caption">Qsys Interconnection Diagram</p>
-</div>
-<h2 id="address-map"><span class="header-section-number">1.2</span> Address Map</h2>
-<div class="figure">
-<img src="images/de2_115_vga_address.png" alt="Address Map" /><p class="caption">Address Map</p>
-</div>
-<h1 id="veek"><span class="header-section-number">2</span> Terasic Video and Embedded Evaluation Kit - Multi-Touch</h1>
+<h1 id="veek"><span class="header-section-number">1</span> Terasic Video and Embedded Evaluation Kit - Multi-Touch</h1>
 <div class="figure">
 <img src="http://www.terasic.com.tw/attachment/archive/670/image/image_82_thumb.jpg" />
 </div>
@@ -140,15 +102,15 @@ document.write('<a h'+'ref'+'="ma'+'ilto'+':'+e+'">'+e+'<\/'+'a'+'>');
 <p>See the <a href="#custom_instructions">section below</a> for details on how to use the custom instructions.</p>
 <p>The demonstration program in <code>software/demo/veek</code> shows how the MXP processor can be used to process video frames and how to set up the frame reader and frame writer to read/write frame data from/to DRAM.</p>
 <p>A Qsys interconnection diagram with Avalon-MM, Avalon-ST, Nios custom instruction and MXP custom instruction buses is shown below.</p>
-<h2 id="qsys-interconnection-diagram-1"><span class="header-section-number">2.1</span> Qsys Interconnection Diagram</h2>
+<h2 id="qsys-interconnection-diagram"><span class="header-section-number">1.1</span> Qsys Interconnection Diagram</h2>
 <div class="figure">
 <img src="images/veek_no_vga_connect.png" alt="Qsys Interconnection Diagram" /><p class="caption">Qsys Interconnection Diagram</p>
 </div>
-<h2 id="address-map-1"><span class="header-section-number">2.2</span> Address Map</h2>
+<h2 id="address-map"><span class="header-section-number">1.2</span> Address Map</h2>
 <div class="figure">
 <img src="images/veek_no_vga_address.png" alt="Address Map" /><p class="caption">Address Map</p>
 </div>
-<h1 id="de4_230"><span class="header-section-number">3</span> Altera DE4-230 Development and Education Board</h1>
+<h1 id="de4_230"><span class="header-section-number">2</span> Altera DE4-230 Development and Education Board</h1>
 <div class="figure">
 <img src="http://www.altera.com/education/univ/images/boards/de4.jpg" />
 </div>
@@ -183,60 +145,74 @@ document.write('<a h'+'ref'+'="ma'+'ilto'+':'+e+'">'+e+'<\/'+'a'+'>');
 <p>In all systems, the DDR2 DRAM controller has a 256-bit wide Avalon-MM slave interface and has a memory clock frequency that is double the system clock frequency.</p>
 <p>See the <a href="#custom_instructions">section below</a> for details on how to use the custom instructions.</p>
 <p>A Qsys interconnection diagram with Avalon-MM, Avalon-ST, Nios custom instruction and MXP custom instruction buses is shown below.</p>
-<h2 id="qsys-interconnection-diagram-2"><span class="header-section-number">3.1</span> Qsys Interconnection Diagram</h2>
+<h2 id="qsys-interconnection-diagram-1"><span class="header-section-number">2.1</span> Qsys Interconnection Diagram</h2>
 <div class="figure">
 <img src="images/de4_230_one_pll_divide_sqrt_185_connect.png" alt="Qsys Interconnection Diagram" /><p class="caption">Qsys Interconnection Diagram</p>
 </div>
-<h2 id="address-map-2"><span class="header-section-number">3.2</span> Address Map</h2>
+<h2 id="address-map-1"><span class="header-section-number">2.2</span> Address Map</h2>
 <div class="figure">
 <img src="images/de4_230_one_pll_divide_sqrt_185_address.png" alt="Address Map" /><p class="caption">Address Map</p>
 </div>
-<h1 id="de4_230_dvi"><span class="header-section-number">4</span> Altera DE4-230 with Terasic HSMC-DVI Daughter Card</h1>
-<p><img src="http://www.altera.com/education/univ/images/boards/de4.jpg" /> <img src="http://www.terasic.com.tw/attachment/archive/359/image/002_500.jpg" /></p>
-<p>This setup consists of a DE4-230 board (see <a href="#de4_230">above</a>) and a Terasic HSMC-DVI daughter card for DVI video input and output.</p>
-<p>More information about the HSMC-DVI daughter card can be found at <a href="http://www.terasic.com.tw/cgi-bin/page/archive.pl?Language=English&amp;No=359">http://www.terasic.com.tw/cgi-bin/page/archive.pl?Language=English&amp;No=359</a>.</p>
-<p>We provide pre-built bitstreams for the DE4-230 + HSMC-DVI for various sizes of the MXP processor (2/4/8/16/32 vector lanes) connected to a Nios II/f CPU. The systems also contain a DDR2 DRAM controller, a stream writer that writes 1920x1080p @ 60Hz video frames from the DVI RX port, and a frame reader that reads video frames from DRAM and sends them to the DVI TX port at 1920x1080p @ 60Hz.</p>
-<p>The DDR2 DRAM controller is configured to support the 1 GB SO-DIMM included with the DE4-230 board in SO-DIMM slot 1 (the slot closest to the USB ports).</p>
-<p>The HSMC-DVI daughter card is expected to be plugged into HSMC connector B (closest to the power switch) and only the 1920x1080p @ 60Hz resolution is supported.</p>
-<p><strong>NOTE:</strong> The EDID EEPROM on the HSMC-DVI card must be re-programmed so that the DVI RX port appears as a monitor capable of 1920x1080p @ 60 Hz. The pre-built V2/V4/V8/V16 SOFs (but not the V32 one) contain a circuit to program the EDID appropriately. After downloading one of the V2-V16 SOFs, you can trigger the EDID write by pressing Button[1]. LED[7] will briefly blink as the EEPROM is re-programmed. If EDID initialization fails, please remove any cable attached to the DVI RX port and press Button[1] to try again. The EDID EEPROM is non-volatile, so you only need to re-program it once, and not each time you download a pre-built SOF.</p>
-<p>A BSP using Altera's Nios II Hardware Abstraction Layer (HAL) is included for each system.</p>
-<p>The bitstreams and BSPs were created with Quartus 13.1.</p>
-<p>The MXP processor in each system has the following base configuration:</p>
+<h1 id="zedboard_arm_mxp"><span class="header-section-number">3</span> Avnet ZedBoard</h1>
+<p>The ZedBoard contains a Xilinx Zynq-7000 XC7Z020 FPGA with two integrated ARM Cortex-A9 processors running at 667 MHz, and 512 MB of on-board DDR3 DRAM.</p>
+<p>For more information on the board, see the following links:</p>
 <ul>
+<li>ZedBoard website: <a href="http://zedboard.org">http://zedboard.org</a></li>
+<li>Digilent website (academic pricing): <a href="http://www.digilentinc.com/Products/Detail.cfm?NavPath=2,400,1028&amp;Prod=ZEDBOARD">http://www.digilentinc.com/Products/Detail.cfm?NavPath=2,400,1028&amp;Prod=ZEDBOARD</a></li>
+</ul>
+<p>We provide pre-built bitstreams for the ZedBoard for various sizes of the MXP processor (1 to 16 vector lanes) connected to the Zynq's ARM Cortex-A9 processing subsystem.</p>
+<p>Note that these bitstreams do not include support for the ZedBoard's on-board HDMI output. If HDMI input and/or output is required, we also have bitstreams that support the on-board HDMI output as well as bitstreams that support the Avnet FMC-IMAGEON daughter-card (see below).</p>
+<p>A standalone BSP is included for each system.</p>
+<p>The bitstreams and BSPs were created with ISE 14.7.</p>
+<p>NOTE: We have tested with ZedBoard Rev C and Rev D boards. We have a report of an incompatibility with a pre-production Rev B board.</p>
+<p>The MXP processor in each system is configured as follows:</p>
+<ul>
+<li>110 MHz.</li>
+<li>64 KB of scratchpad memory.</li>
+<li>64-bit wide DMA interface (32 bits for V1 configuration).</li>
 <li>Fractional bits for fixed-point multiplication: 16 fractional bits for words, 15 for halfwords, 4 for bytes.</li>
-<li>Three custom instructions:
-<ul>
-<li>fixed-point division (VCUSTOM0)</li>
-<li>fixed-point square root (VCUSTOM1)</li>
-<li>particle repulsion force calculation (for demo program) (VCUSTOM3)</li>
-</ul></li>
 </ul>
-<p>The bitstreams differ in the number of MXP vector lanes, system clock frequency (Nios II/f and MXP core clock frequency), MXP scratchpad size, the MXP DMA engine's data bus width, and the number of MXP logical custom instruction lanes (vci_lanes):</p>
-<ul>
-<li>V2: 200 MHz, 64 KB scratchpad, 64-bit wide DMA, vci_lanes=2</li>
-<li>V4: 200 MHz, 64 KB scratchpad, 128-bit wide DMA, vci_lanes=2</li>
-<li>V8: 200 MHz, 64 KB scratchpad, 256-bit wide DMA, vci_lanes=2</li>
-<li>V16: 200 MHz, 64 KB scratchpad, 256-bit wide DMA, vci_lanes=2</li>
-<li>V32: 185 MHz, 128 KB scratchpad, 256-bit wide DMA, vci_lanes=4</li>
-</ul>
-<p>In all systems, the DDR2 DRAM controller has a 256-bit wide Avalon-MM slave interface and has a memory clock frequency that is double the system clock frequency.</p>
-<p>For debugging purposes, the following DRAM controller signals are connected to LEDs:</p>
-<ul>
-<li>ddr_cal_fail: LED[4]</li>
-<li>ddr_cal_success: LED[3]</li>
-<li>ddr_init_done, LED[2]</li>
-</ul>
-<p>See the <a href="#custom_instructions">section below</a> for details on how to use the custom instructions.</p>
-<p>The demonstration program in <code>software/demo/de4_dvi</code> shows how the MXP processor can be used to process video frames and how to set up the frame reader and stream writer to read/write frame data from/to DRAM.</p>
-<p>A Qsys interconnection diagram with Avalon-MM, Avalon-ST, Nios custom instruction and MXP custom instruction buses is shown below.</p>
-<h2 id="qsys-interconnection-diagram-3"><span class="header-section-number">4.1</span> Qsys Interconnection Diagram</h2>
+<p>The Xilinx Platform Studio <em>Bus Interfaces</em> and <em>Addresses</em> views are shown below:</p>
 <div class="figure">
-<img src="images/de4_230_dvi_connect.png" alt="Qsys Interconnection Diagram" /><p class="caption">Qsys Interconnection Diagram</p>
+<img src="images/xps_zedboard_arm_mxp.png" alt="XPS Bus Interfaces View" /><p class="caption">XPS Bus Interfaces View</p>
 </div>
-<h2 id="address-map-3"><span class="header-section-number">4.2</span> Address Map</h2>
 <div class="figure">
-<img src="images/de4_230_dvi_address.png" alt="Address Map" /><p class="caption">Address Map</p>
+<img src="images/xps_zedboard_arm_mxp_addr_map.png" alt="Address Map" /><p class="caption">Address Map</p>
 </div>
+<p>(Note: our example programs use the Cortex-A9 MMU's translation table to alias the 512 MB of DDR3 DRAM to uncached strongly-ordered memory in the range 0x8000_0000 to 0x9fff_ffff.)</p>
+<h1 id="zedboard_mb"><span class="header-section-number">4</span> Avnet ZedBoard MicroBlaze System</h1>
+<p>These ZedBoard bitstreams consist of an MXP processor connected to a MicroBlaze soft-CPU implemented in the Programmable Logic portion of the Zynq FPGA.</p>
+<p>Note that these bitstreams do not include support for the ZedBoard's on-board HDMI output. If HDMI input and/or output is required, we also have MicroBlaze-based bitstreams that support the on-board HDMI output as well as bitstreams that support the Avnet FMC-IMAGEON daughter-card (see below).</p>
+<p>A standalone BSP is included for each system.</p>
+<p>The bitstreams and BSPs were created with ISE 14.7.</p>
+<p>The MicroBlaze processor in each system is configured as follows:</p>
+<ul>
+<li>100 MHz.</li>
+<li>4 KB data cache, direct-mapped, write-back, 32-byte line size.</li>
+<li>8 KB instruction cache, direct-mapped, 32-byte line size.</li>
+<li>1024-entry branch target cache.</li>
+<li>barrel shifter.</li>
+<li>hardware integer multiplier for mul, muli support.</li>
+<li>machine status register bit set/clear instructions.</li>
+<li>pattern compare instructions.</li>
+<li>reversed load/store and swap instructions.</li>
+<li>no integer divider, no floating point unit, no memory management unit.</li>
+</ul>
+<p>The MXP processor in each system is configured as follows:</p>
+<ul>
+<li>100 MHz.</li>
+<li>64 KB of scratchpad memory.</li>
+<li>64-bit wide DMA interface (32 bits for V1 configuration).</li>
+<li>Fractional bits for fixed-point multiplication: 16 fractional bits for words, 15 for halfwords, 4 for bytes.</li>
+</ul>
+<p>The Xilinx Platform Studio <em>Bus Interfaces</em> and <em>Addresses</em> views are shown below:</p>
+<div class="figure">
+<img src="images/xps_zedboard_mb.png" alt="XPS Bus Interfaces View" /><p class="caption">XPS Bus Interfaces View</p>
+</div>
+<div class="figure">
+<img src="images/xps_zedboard_mb_addr_map.png" alt="Address Map" /><p class="caption">Address Map</p>
+</div>
+<p>Note that DRAM is aliased to the range 0x8000_0000 to 0x9fff_ffff for uncached access via the MicroBlaze's M_AXI_DP port.</p>
 <h1 id="custom_instructions"><span class="header-section-number">5</span> Custom Instruction Descriptions</h1>
 <p>As noted above, certain board configurations come equipped with custom instructions such as fixed-point divide, square root, and particle repulsion force calculation. As these custom instructions are specific to particular systems, code written using custom instructions will not be portable to all systems. Systems with the same custom instructions have a variable number of custom instruction lanes, which can affect performance and programming. See the <a href="mxp_reference.html">MXP Programming Reference</a> for further information on custom instructions.</p>
 <h2 id="fp_divide"><span class="header-section-number">5.1</span> Fixed-Point Divide</h2>
