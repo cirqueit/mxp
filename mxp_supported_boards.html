@@ -80,7 +80,7 @@ document.write('<a h'+'ref'+'="ma'+'ilto'+':'+e+'">'+e+'<\/'+'a'+'>');
 <div class="figure">
 <img src="http://www.terasic.com.tw/attachment/archive/670/image/image_82_thumb.jpg" />
 </div>
-<p>The VEEK-MT development kit consists of a DE2-115 board (see <a href="#de2_115">above</a>) connected to a 7-inch 800x480 LCD touch screen and a 5-megapixel digital image sensor.</p>
+<p>The VEEK-MT development kit consists of a DE2-115 board connected to a 7-inch 800x480 LCD touch screen and a 5-megapixel digital image sensor.</p>
 <p>More information about the kit can be found at <a href="http://www.terasic.com.tw/cgi-bin/page/archive.pl?Language=English&amp;CategoryNo=139&amp;No=670">http://www.terasic.com.tw/cgi-bin/page/archive.pl?Language=English&amp;CategoryNo=139&amp;No=670</a>.</p>
 <p>We provide pre-built bitstreams for the VEEK-MT for various sizes of the MXP processor (2/4/8/16 vector lanes) connected to a Nios II/f CPU. The systems also contain an SDRAM controller, a frame writer that writes 800x480 @ 60Hz video frames from the image sensor to DRAM, and a frame reader that reads video frames from DRAM and sends them to the LCD at 800x480 @ 60Hz. (Note: the video output is not mirrored to the VGA port.)</p>
 <p>A BSP using Altera's Nios II Hardware Abstraction Layer (HAL) is included for each system.</p>
@@ -100,7 +100,11 @@ document.write('<a h'+'ref'+'="ma'+'ilto'+':'+e+'">'+e+'<\/'+'a'+'>');
 <li>The custom instructions are two logical lanes wide (vci_lanes=2).</li>
 </ul>
 <p>See the <a href="#custom_instructions">section below</a> for details on how to use the custom instructions.</p>
-<p>The demonstration program in <code>software/demo/veek</code> shows how the MXP processor can be used to process video frames and how to set up the frame reader and frame writer to read/write frame data from/to DRAM.</p>
+<!--
+The demonstration program in `software/demo/veek` shows how the MXP
+processor can be used to process video frames and how to set up the
+frame reader and frame writer to read/write frame data from/to DRAM.
+-->
 <p>A Qsys interconnection diagram with Avalon-MM, Avalon-ST, Nios custom instruction and MXP custom instruction buses is shown below.</p>
 <h2 id="qsys-interconnection-diagram"><span class="header-section-number">1.1</span> Qsys Interconnection Diagram</h2>
 <div class="figure">
@@ -120,9 +124,11 @@ document.write('<a h'+'ref'+'="ma'+'ilto'+':'+e+'">'+e+'<\/'+'a'+'>');
 <li><a href="http://www.altera.com/education/univ/materials/boards/de4/unv-de4-board.html">http://www.altera.com/education/univ/materials/boards/de4/unv-de4-board.html</a></li>
 <li><a href="http://www.terasic.com.tw/cgi-bin/page/archive.pl?Language=English&amp;CategoryNo=138&amp;No=501">http://www.terasic.com.tw/cgi-bin/page/archive.pl?Language=English&amp;CategoryNo=138&amp;No=501</a></li>
 </ul>
-<p>We provide pre-built bitstreams for the DE4-230 for various sizes of the MXP processor (1/2/4/8/16/32 vector lanes) connected to a Nios II/f CPU and a DDR2 DRAM controller configured to support the 1 GB SO-DIMM included with the DE4-230 board in SO-DIMM slot 1 (the slot closest to the USB ports).</p>
-<p>Note that there is no video input or output; if this is required, we also provide bitstreams for the DE4-230 board with the Terasic HSMC-DVI daughter card (<a href="#de4_230_dvi">see below</a>).</p>
-<p>A BSP using Altera's Nios II Hardware Abstraction Layer (HAL) is included for each system.</p>
+<p>We provide pre-built bitstreams for the DE4-230 for various sizes of the MXP processor (1/2/4/8/16/32 vector lanes) connected to a Nios II/f CPU and a DDR2 DRAM controller configured to support the 1 GB SO-DIMM included with the DE4-230 board in SO-DIMM slot 1 (the slot closest to the USB ports). <!--
+Note that there is no video input or output; if this is required, we
+also provide bitstreams for the DE4-230 board with the Terasic
+HSMC-DVI daughter card ([see below](#de4_230_dvi)).
+--> A BSP using Altera's Nios II Hardware Abstraction Layer (HAL) is included for each system.</p>
 <p>The bitstreams and BSPs were created with Quartus 13.1.</p>
 <p>The MXP processor in each system has the following base configuration:</p>
 <ul>
@@ -163,7 +169,7 @@ document.write('<a h'+'ref'+'="ma'+'ilto'+':'+e+'">'+e+'<\/'+'a'+'>');
 <p>We provide pre-built bitstreams for the ZedBoard for various sizes of the MXP processor (1 to 16 vector lanes) connected to the Zynq's ARM Cortex-A9 processing subsystem.</p>
 <p>Note that these bitstreams do not include support for the ZedBoard's on-board HDMI output. If HDMI input and/or output is required, we also have bitstreams that support the on-board HDMI output as well as bitstreams that support the Avnet FMC-IMAGEON daughter-card (see below).</p>
 <p>A standalone BSP is included for each system.</p>
-<p>The bitstreams and BSPs were created with ISE 14.7.</p>
+<p>The bitstreams and BSPs were created with ISE 14.7 or Vivado 2014.2.</p>
 <p>NOTE: We have tested with ZedBoard Rev C and Rev D boards. We have a report of an incompatibility with a pre-production Rev B board.</p>
 <p>The MXP processor in each system is configured as follows:</p>
 <ul>
@@ -177,7 +183,14 @@ document.write('<a h'+'ref'+'="ma'+'ilto'+':'+e+'">'+e+'<\/'+'a'+'>');
 <img src="images/xps_zedboard_arm_mxp.png" alt="XPS Bus Interfaces View" /><p class="caption">XPS Bus Interfaces View</p>
 </div>
 <div class="figure">
-<img src="images/xps_zedboard_arm_mxp_addr_map.png" alt="Address Map" /><p class="caption">Address Map</p>
+<img src="images/xps_zedboard_arm_mxp_addr_map.png" alt="XPS Address Map" /><p class="caption">XPS Address Map</p>
+</div>
+<p>The Vivado <em>Block Diagram</em> and <em>Address Editor</em> views are shown below:</p>
+<div class="figure">
+<img src="images/vivado_zedboard_arm_bd.png" alt="Vivado Bus Interfaces View" /><p class="caption">Vivado Bus Interfaces View</p>
+</div>
+<div class="figure">
+<img src="images/vivado_zedboard_arm_addr_map.png" alt="Vivado Address Map" /><p class="caption">Vivado Address Map</p>
 </div>
 <p>(Note: our example programs use the Cortex-A9 MMU's translation table to alias the 512 MB of DDR3 DRAM to uncached strongly-ordered memory in the range 0x8000_0000 to 0x9fff_ffff.)</p>
 <h1 id="zedboard_mb"><span class="header-section-number">4</span> Avnet ZedBoard MicroBlaze System</h1>
@@ -210,7 +223,14 @@ document.write('<a h'+'ref'+'="ma'+'ilto'+':'+e+'">'+e+'<\/'+'a'+'>');
 <img src="images/xps_zedboard_mb.png" alt="XPS Bus Interfaces View" /><p class="caption">XPS Bus Interfaces View</p>
 </div>
 <div class="figure">
-<img src="images/xps_zedboard_mb_addr_map.png" alt="Address Map" /><p class="caption">Address Map</p>
+<img src="images/xps_zedboard_mb_addr_map.png" alt="XPS Address Map" /><p class="caption">XPS Address Map</p>
+</div>
+<p>The Vivado <em>Block Diagram</em> and <em>Address Editor</em> views are shown below:</p>
+<div class="figure">
+<img src="images/vivado_microblaze_no_clocks.png" alt="Vivado Bus Interfaces View" /><p class="caption">Vivado Bus Interfaces View</p>
+</div>
+<div class="figure">
+<img src="images/vivado_mb_address_map.png" alt="Vivado Address Map" /><p class="caption">Vivado Address Map</p>
 </div>
 <p>Note that DRAM is aliased to the range 0x8000_0000 to 0x9fff_ffff for uncached access via the MicroBlaze's M_AXI_DP port.</p>
 <h1 id="custom_instructions"><span class="header-section-number">5</span> Custom Instruction Descriptions</h1>
