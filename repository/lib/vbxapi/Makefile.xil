@@ -1,0 +1,5 @@
+OUTPUT_LIB := libvbxapi.a
+C_SRCS :=
+include sources.mk
+
+include ../../common/xil_lib.mk

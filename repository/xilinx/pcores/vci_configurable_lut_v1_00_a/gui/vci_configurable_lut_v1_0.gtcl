@@ -1,0 +1,17 @@
+# This file is automatically written.
+proc gen_USERPARAMETER_BASE_SHIFT_VALUE {LUT_DEPTH OPERAND_SIZE_BYTES } {
+    #Get log2(LUT_DEPTH)
+    set address_bits 0
+    # n = 2**i
+    set n 1
+    while {$n < $LUT_DEPTH} {
+        incr address_bits
+        set n [expr 2*$n]
+    }
+    set operand_width [expr $OPERAND_SIZE_BYTES*8]
+    set BASE_SHIFT 0
+    if {$address_bits > $operand_width} {
+	set BASE_SHIFT [expr $address_bits - $operand_width]
+    }
+    expr int($BASE_SHIFT)
+}

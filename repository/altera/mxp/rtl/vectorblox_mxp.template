@@ -1,0 +1,1605 @@
+-- vectorblox_mxp.vhd
+-- Copyright (C) 2012-2015 VectorBlox Computing, Inc.
+
+-- synthesis library vbx_lib
+library IEEE;
+use IEEE.std_logic_1164.all;
+use IEEE.numeric_std.all;
+
+library work;
+-- for min_size_type enumerated type:
+use work.architecture_pkg.all;
+
+entity vectorblox_mxp is
+  port(
+
+    -- Nios Custom Instruction Interface (Conduit)--
+    ci_clk    : in std_logic := '0';
+    ci_clk_en : in std_logic := '0';
+    ci_reset  : in std_logic := '0';
+
+    ci_start : in  std_logic := '0';
+    ci_done  : out std_logic := '0';
+
+    ci_dataa   : in  std_logic_vector(31 downto 0) := (others => '0');
+    ci_datab   : in  std_logic_vector(31 downto 0) := (others => '0');
+    ci_writerc : in  std_logic;
+    ci_result  : out std_logic_vector(31 downto 0) := (others => '0');
+
+    -- Nios Custom Instruction Interface (slave port)--
+    ncs_clk    : in std_logic := '0';
+    ncs_clk_en : in std_logic := '0';
+    ncs_reset  : in std_logic := '0';
+
+    ncs_start : in  std_logic := '0';
+    ncs_done  : out std_logic := '0';
+
+    ncs_dataa   : in  std_logic_vector(31 downto 0) := (others => '0');
+    ncs_datab   : in  std_logic_vector(31 downto 0) := (others => '0');
+    ncs_writerc : in  std_logic;
+    ncs_result  : out std_logic_vector(31 downto 0) := (others => '0');
+
+    -- AXI4 Slave Instruction Port
+    axs_awaddr  : in  std_logic_vector(INSTR_ADDR_WIDTH-1 downto 0)                        := (others => '0');
+    axs_awvalid : in  std_logic                                             := '0';
+    axs_awready : out std_logic                                             := '0';
+    axs_awid    : in  std_logic_vector(ID_WIDTH-1 downto 0)                       := (others => '0');
+    axs_awlen   : in  std_logic_vector(3 downto 0)                          := (others => '0');
+    axs_awsize  : in  std_logic_vector(2 downto 0)                          := (others => '0');
+    axs_awburst : in  std_logic_vector(1 downto 0)                          := (others => '0');
+    axs_awlock  : in  std_logic_vector(1 downto 0)                          := (others => '0');
+    axs_awcache : in  std_logic_vector(3 downto 0)                          := (others => '0');
+    axs_awprot  : in  std_logic_vector(2 downto 0)                          := (others => '0');
+
+    axs_wdata  : in  std_logic_vector(32-1 downto 0)                        := (others => '0');
+    axs_wstrb  : in  std_logic_vector((32/8)-1 downto 0)                    := (others => '0');
+    axs_wvalid : in  std_logic                                              := '0';
+    axs_wlast  : in  std_logic                                              := '0';
+    axs_wready : out std_logic                                              := '0';
+    axs_wid    : in std_logic_vector(ID_WIDTH-1 downto 0)                         := (others => '0');
+
+    axs_bready : in  std_logic                                              := '0';
+    axs_bresp  : out std_logic_vector(1 downto 0)                           := (others => '0');
+    axs_bvalid : out std_logic                                              := '0';
+    axs_bid    : out std_logic_vector(ID_WIDTH-1 downto 0)                        := (others => '0');
+
+    axs_araddr  : in  std_logic_vector(INSTR_ADDR_WIDTH-1 downto 0)                        := (others => '0');
+    axs_arvalid : in  std_logic                                             := '0';
+    axs_arready : out std_logic                                             := '0';
+    axs_arid    : in  std_logic_vector(ID_WIDTH-1 downto 0)                       := (others => '0');
+    axs_arlen   : in  std_logic_vector(3 downto 0)                          := (others => '0');
+    axs_arsize  : in  std_logic_vector(2 downto 0)                          := (others => '0');
+    axs_arburst : in  std_logic_vector(1 downto 0)                          := (others => '0');
+    axs_arlock  : in  std_logic_vector(1 downto 0)                          := (others => '0');
+    axs_arcache : in  std_logic_vector(3 downto 0)                          := (others => '0');
+    axs_arprot  : in  std_logic_vector(2 downto 0)                          := (others => '0');
+
+
+    axs_rready : in  std_logic                                              := '0';
+    axs_rdata  : out std_logic_vector(32-1 downto 0)                        := (others => '0');
+    axs_rresp  : out std_logic_vector(1 downto 0)                           := (others => '0');
+    axs_rvalid : out std_logic                                              := '0';
+    axs_rlast  : out std_logic                                              := '0';
+    axs_rid    : out std_logic_vector(ID_WIDTH-1 downto 0)                         := (others => '0');
+
+    -- Core Clocks --
+    core_clk    : in std_logic;
+    core_reset  : in std_logic;
+    core_clk_2x : in std_logic;
+
+    -- Avalon Master --
+    master_address       : out std_logic_vector(31 downto 0);
+    master_read          : out std_logic;
+    master_write         : out std_logic;
+    master_waitrequest   : in  std_logic;
+    master_readdatavalid : in  std_logic;
+
+    master_burstcount : out std_logic_vector(BURSTCOUNT_WIDTH-1 downto 0);
+
+    master_writedata  : out std_logic_vector(MEMORY_BUS_WIDTH-1 downto 0);
+    master_byteenable : out std_logic_vector(MEMORY_WIDTH_LANES*4-1 downto 0);
+    master_readdata   : in  std_logic_vector(MEMORY_BUS_WIDTH-1 downto 0);
+
+    -- Avalon Slave --
+    slave_address       : in  std_logic_vector(SLAVE_ADDR_WIDTH-1 downto 0);
+    slave_read          : in  std_logic;
+    slave_write         : in  std_logic;
+    slave_waitrequest   : out std_logic;
+    slave_readdatavalid : out std_logic;
+
+    slave_writedata  : in  std_logic_vector(31 downto 0);
+    slave_byteenable : in  std_logic_vector(3 downto 0);
+    slave_readdata   : out std_logic_vector(31 downto 0);
+
+    -- Vector Custom Instructions --
+    vci_0_clk   : out std_logic;
+    vci_0_reset : out std_logic;
+
+    vci_0_valid  : out std_logic_vector(VCI_0_FUNCTIONS-1 downto 0);
+    vci_0_signed : out std_logic;
+    vci_0_opsize : out std_logic_vector(1 downto 0);
+
+    vci_0_vector_start : out std_logic;
+    vci_0_vector_end   : out std_logic;
+    vci_0_byte_valid   : out std_logic_vector(VCI_0_BYTES-1 downto 0);
+    vci_0_dest_addr_in : out std_logic_vector(31 downto 0);
+
+    vci_0_data_a : out std_logic_vector(VCI_0_BITS-1 downto 0);
+    vci_0_flag_a : out std_logic_vector(VCI_0_BYTES-1 downto 0);
+    vci_0_data_b : out std_logic_vector(VCI_0_BITS-1 downto 0);
+    vci_0_flag_b : out std_logic_vector(VCI_0_BYTES-1 downto 0);
+
+    vci_0_data_out      : in std_logic_vector(VCI_0_BITS-1 downto 0);
+    vci_0_flag_out      : in std_logic_vector(VCI_0_BYTES-1 downto 0);
+    vci_0_byteenable    : in std_logic_vector(VCI_0_BYTES-1 downto 0);
+    vci_0_dest_addr_out : in std_logic_vector(31 downto 0);
+
+    vci_1_clk   : out std_logic;
+    vci_1_reset : out std_logic;
+
+    vci_1_valid  : out std_logic_vector(VCI_1_FUNCTIONS-1 downto 0);
+    vci_1_signed : out std_logic;
+    vci_1_opsize : out std_logic_vector(1 downto 0);
+
+    vci_1_vector_start : out std_logic;
+    vci_1_vector_end   : out std_logic;
+    vci_1_byte_valid   : out std_logic_vector(VCI_1_BYTES-1 downto 0);
+    vci_1_dest_addr_in : out std_logic_vector(31 downto 0);
+
+    vci_1_data_a : out std_logic_vector(VCI_1_BITS-1 downto 0);
+    vci_1_flag_a : out std_logic_vector(VCI_1_BYTES-1 downto 0);
+    vci_1_data_b : out std_logic_vector(VCI_1_BITS-1 downto 0);
+    vci_1_flag_b : out std_logic_vector(VCI_1_BYTES-1 downto 0);
+
+    vci_1_data_out      : in std_logic_vector(VCI_1_BITS-1 downto 0);
+    vci_1_flag_out      : in std_logic_vector(VCI_1_BYTES-1 downto 0);
+    vci_1_byteenable    : in std_logic_vector(VCI_1_BYTES-1 downto 0);
+    vci_1_dest_addr_out : in std_logic_vector(31 downto 0);
+
+    vci_2_clk   : out std_logic;
+    vci_2_reset : out std_logic;
+
+    vci_2_valid  : out std_logic_vector(VCI_2_FUNCTIONS-1 downto 0);
+    vci_2_signed : out std_logic;
+    vci_2_opsize : out std_logic_vector(1 downto 0);
+
+    vci_2_vector_start : out std_logic;
+    vci_2_vector_end   : out std_logic;
+    vci_2_byte_valid   : out std_logic_vector(VCI_2_BYTES-1 downto 0);
+    vci_2_dest_addr_in : out std_logic_vector(31 downto 0);
+
+    vci_2_data_a : out std_logic_vector(VCI_2_BITS-1 downto 0);
+    vci_2_flag_a : out std_logic_vector(VCI_2_BYTES-1 downto 0);
+    vci_2_data_b : out std_logic_vector(VCI_2_BITS-1 downto 0);
+    vci_2_flag_b : out std_logic_vector(VCI_2_BYTES-1 downto 0);
+
+    vci_2_data_out      : in std_logic_vector(VCI_2_BITS-1 downto 0);
+    vci_2_flag_out      : in std_logic_vector(VCI_2_BYTES-1 downto 0);
+    vci_2_byteenable    : in std_logic_vector(VCI_2_BYTES-1 downto 0);
+    vci_2_dest_addr_out : in std_logic_vector(31 downto 0);
+
+    vci_3_clk   : out std_logic;
+    vci_3_reset : out std_logic;
+
+    vci_3_valid  : out std_logic_vector(VCI_3_FUNCTIONS-1 downto 0);
+    vci_3_signed : out std_logic;
+    vci_3_opsize : out std_logic_vector(1 downto 0);
+
+    vci_3_vector_start : out std_logic;
+    vci_3_vector_end   : out std_logic;
+    vci_3_byte_valid   : out std_logic_vector(VCI_3_BYTES-1 downto 0);
+    vci_3_dest_addr_in : out std_logic_vector(31 downto 0);
+
+    vci_3_data_a : out std_logic_vector(VCI_3_BITS-1 downto 0);
+    vci_3_flag_a : out std_logic_vector(VCI_3_BYTES-1 downto 0);
+    vci_3_data_b : out std_logic_vector(VCI_3_BITS-1 downto 0);
+    vci_3_flag_b : out std_logic_vector(VCI_3_BYTES-1 downto 0);
+
+    vci_3_data_out      : in std_logic_vector(VCI_3_BITS-1 downto 0);
+    vci_3_flag_out      : in std_logic_vector(VCI_3_BYTES-1 downto 0);
+    vci_3_byteenable    : in std_logic_vector(VCI_3_BYTES-1 downto 0);
+    vci_3_dest_addr_out : in std_logic_vector(31 downto 0);
+
+    vci_4_clk   : out std_logic;
+    vci_4_reset : out std_logic;
+
+    vci_4_valid  : out std_logic_vector(VCI_4_FUNCTIONS-1 downto 0);
+    vci_4_signed : out std_logic;
+    vci_4_opsize : out std_logic_vector(1 downto 0);
+
+    vci_4_vector_start : out std_logic;
+    vci_4_vector_end   : out std_logic;
+    vci_4_byte_valid   : out std_logic_vector(VCI_4_BYTES-1 downto 0);
+    vci_4_dest_addr_in : out std_logic_vector(31 downto 0);
+
+    vci_4_data_a : out std_logic_vector(VCI_4_BITS-1 downto 0);
+    vci_4_flag_a : out std_logic_vector(VCI_4_BYTES-1 downto 0);
+    vci_4_data_b : out std_logic_vector(VCI_4_BITS-1 downto 0);
+    vci_4_flag_b : out std_logic_vector(VCI_4_BYTES-1 downto 0);
+
+    vci_4_data_out      : in std_logic_vector(VCI_4_BITS-1 downto 0);
+    vci_4_flag_out      : in std_logic_vector(VCI_4_BYTES-1 downto 0);
+    vci_4_byteenable    : in std_logic_vector(VCI_4_BYTES-1 downto 0);
+    vci_4_dest_addr_out : in std_logic_vector(31 downto 0);
+
+    vci_5_clk   : out std_logic;
+    vci_5_reset : out std_logic;
+
+    vci_5_valid  : out std_logic_vector(VCI_5_FUNCTIONS-1 downto 0);
+    vci_5_signed : out std_logic;
+    vci_5_opsize : out std_logic_vector(1 downto 0);
+
+    vci_5_vector_start : out std_logic;
+    vci_5_vector_end   : out std_logic;
+    vci_5_byte_valid   : out std_logic_vector(VCI_5_BYTES-1 downto 0);
+    vci_5_dest_addr_in : out std_logic_vector(31 downto 0);
+
+    vci_5_data_a : out std_logic_vector(VCI_5_BITS-1 downto 0);
+    vci_5_flag_a : out std_logic_vector(VCI_5_BYTES-1 downto 0);
+    vci_5_data_b : out std_logic_vector(VCI_5_BITS-1 downto 0);
+    vci_5_flag_b : out std_logic_vector(VCI_5_BYTES-1 downto 0);
+
+    vci_5_data_out      : in std_logic_vector(VCI_5_BITS-1 downto 0);
+    vci_5_flag_out      : in std_logic_vector(VCI_5_BYTES-1 downto 0);
+    vci_5_byteenable    : in std_logic_vector(VCI_5_BYTES-1 downto 0);
+    vci_5_dest_addr_out : in std_logic_vector(31 downto 0);
+
+    vci_6_clk   : out std_logic;
+    vci_6_reset : out std_logic;
+
+    vci_6_valid  : out std_logic_vector(VCI_6_FUNCTIONS-1 downto 0);
+    vci_6_signed : out std_logic;
+    vci_6_opsize : out std_logic_vector(1 downto 0);
+
+    vci_6_vector_start : out std_logic;
+    vci_6_vector_end   : out std_logic;
+    vci_6_byte_valid   : out std_logic_vector(VCI_6_BYTES-1 downto 0);
+    vci_6_dest_addr_in : out std_logic_vector(31 downto 0);
+
+    vci_6_data_a : out std_logic_vector(VCI_6_BITS-1 downto 0);
+    vci_6_flag_a : out std_logic_vector(VCI_6_BYTES-1 downto 0);
+    vci_6_data_b : out std_logic_vector(VCI_6_BITS-1 downto 0);
+    vci_6_flag_b : out std_logic_vector(VCI_6_BYTES-1 downto 0);
+
+    vci_6_data_out      : in std_logic_vector(VCI_6_BITS-1 downto 0);
+    vci_6_flag_out      : in std_logic_vector(VCI_6_BYTES-1 downto 0);
+    vci_6_byteenable    : in std_logic_vector(VCI_6_BYTES-1 downto 0);
+    vci_6_dest_addr_out : in std_logic_vector(31 downto 0);
+
+    vci_7_clk   : out std_logic;
+    vci_7_reset : out std_logic;
+
+    vci_7_valid  : out std_logic_vector(VCI_7_FUNCTIONS-1 downto 0);
+    vci_7_signed : out std_logic;
+    vci_7_opsize : out std_logic_vector(1 downto 0);
+
+    vci_7_vector_start : out std_logic;
+    vci_7_vector_end   : out std_logic;
+    vci_7_byte_valid   : out std_logic_vector(VCI_7_BYTES-1 downto 0);
+    vci_7_dest_addr_in : out std_logic_vector(31 downto 0);
+
+    vci_7_data_a : out std_logic_vector(VCI_7_BITS-1 downto 0);
+    vci_7_flag_a : out std_logic_vector(VCI_7_BYTES-1 downto 0);
+    vci_7_data_b : out std_logic_vector(VCI_7_BITS-1 downto 0);
+    vci_7_flag_b : out std_logic_vector(VCI_7_BYTES-1 downto 0);
+
+    vci_7_data_out      : in std_logic_vector(VCI_7_BITS-1 downto 0);
+    vci_7_flag_out      : in std_logic_vector(VCI_7_BYTES-1 downto 0);
+    vci_7_byteenable    : in std_logic_vector(VCI_7_BYTES-1 downto 0);
+    vci_7_dest_addr_out : in std_logic_vector(31 downto 0);
+
+    vci_8_clk   : out std_logic;
+    vci_8_reset : out std_logic;
+
+    vci_8_valid  : out std_logic_vector(VCI_8_FUNCTIONS-1 downto 0);
+    vci_8_signed : out std_logic;
+    vci_8_opsize : out std_logic_vector(1 downto 0);
+
+    vci_8_vector_start : out std_logic;
+    vci_8_vector_end   : out std_logic;
+    vci_8_byte_valid   : out std_logic_vector(VCI_8_BYTES-1 downto 0);
+    vci_8_dest_addr_in : out std_logic_vector(31 downto 0);
+
+    vci_8_data_a : out std_logic_vector(VCI_8_BITS-1 downto 0);
+    vci_8_flag_a : out std_logic_vector(VCI_8_BYTES-1 downto 0);
+    vci_8_data_b : out std_logic_vector(VCI_8_BITS-1 downto 0);
+    vci_8_flag_b : out std_logic_vector(VCI_8_BYTES-1 downto 0);
+
+    vci_8_data_out      : in std_logic_vector(VCI_8_BITS-1 downto 0);
+    vci_8_flag_out      : in std_logic_vector(VCI_8_BYTES-1 downto 0);
+    vci_8_byteenable    : in std_logic_vector(VCI_8_BYTES-1 downto 0);
+    vci_8_dest_addr_out : in std_logic_vector(31 downto 0);
+
+    vci_9_clk   : out std_logic;
+    vci_9_reset : out std_logic;
+
+    vci_9_valid  : out std_logic_vector(VCI_9_FUNCTIONS-1 downto 0);
+    vci_9_signed : out std_logic;
+    vci_9_opsize : out std_logic_vector(1 downto 0);
+
+    vci_9_vector_start : out std_logic;
+    vci_9_vector_end   : out std_logic;
+    vci_9_byte_valid   : out std_logic_vector(VCI_9_BYTES-1 downto 0);
+    vci_9_dest_addr_in : out std_logic_vector(31 downto 0);
+
+    vci_9_data_a : out std_logic_vector(VCI_9_BITS-1 downto 0);
+    vci_9_flag_a : out std_logic_vector(VCI_9_BYTES-1 downto 0);
+    vci_9_data_b : out std_logic_vector(VCI_9_BITS-1 downto 0);
+    vci_9_flag_b : out std_logic_vector(VCI_9_BYTES-1 downto 0);
+
+    vci_9_data_out      : in std_logic_vector(VCI_9_BITS-1 downto 0);
+    vci_9_flag_out      : in std_logic_vector(VCI_9_BYTES-1 downto 0);
+    vci_9_byteenable    : in std_logic_vector(VCI_9_BYTES-1 downto 0);
+    vci_9_dest_addr_out : in std_logic_vector(31 downto 0);
+
+    vci_10_clk   : out std_logic;
+    vci_10_reset : out std_logic;
+
+    vci_10_valid  : out std_logic_vector(VCI_10_FUNCTIONS-1 downto 0);
+    vci_10_signed : out std_logic;
+    vci_10_opsize : out std_logic_vector(1 downto 0);
+
+    vci_10_vector_start : out std_logic;
+    vci_10_vector_end   : out std_logic;
+    vci_10_byte_valid   : out std_logic_vector(VCI_10_BYTES-1 downto 0);
+    vci_10_dest_addr_in : out std_logic_vector(31 downto 0);
+
+    vci_10_data_a : out std_logic_vector(VCI_10_BITS-1 downto 0);
+    vci_10_flag_a : out std_logic_vector(VCI_10_BYTES-1 downto 0);
+    vci_10_data_b : out std_logic_vector(VCI_10_BITS-1 downto 0);
+    vci_10_flag_b : out std_logic_vector(VCI_10_BYTES-1 downto 0);
+
+    vci_10_data_out      : in std_logic_vector(VCI_10_BITS-1 downto 0);
+    vci_10_flag_out      : in std_logic_vector(VCI_10_BYTES-1 downto 0);
+    vci_10_byteenable    : in std_logic_vector(VCI_10_BYTES-1 downto 0);
+    vci_10_dest_addr_out : in std_logic_vector(31 downto 0);
+
+    vci_11_clk   : out std_logic;
+    vci_11_reset : out std_logic;
+
+    vci_11_valid  : out std_logic_vector(VCI_11_FUNCTIONS-1 downto 0);
+    vci_11_signed : out std_logic;
+    vci_11_opsize : out std_logic_vector(1 downto 0);
+
+    vci_11_vector_start : out std_logic;
+    vci_11_vector_end   : out std_logic;
+    vci_11_byte_valid   : out std_logic_vector(VCI_11_BYTES-1 downto 0);
+    vci_11_dest_addr_in : out std_logic_vector(31 downto 0);
+
+    vci_11_data_a : out std_logic_vector(VCI_11_BITS-1 downto 0);
+    vci_11_flag_a : out std_logic_vector(VCI_11_BYTES-1 downto 0);
+    vci_11_data_b : out std_logic_vector(VCI_11_BITS-1 downto 0);
+    vci_11_flag_b : out std_logic_vector(VCI_11_BYTES-1 downto 0);
+
+    vci_11_data_out      : in std_logic_vector(VCI_11_BITS-1 downto 0);
+    vci_11_flag_out      : in std_logic_vector(VCI_11_BYTES-1 downto 0);
+    vci_11_byteenable    : in std_logic_vector(VCI_11_BYTES-1 downto 0);
+    vci_11_dest_addr_out : in std_logic_vector(31 downto 0);
+
+    vci_12_clk   : out std_logic;
+    vci_12_reset : out std_logic;
+
+    vci_12_valid  : out std_logic_vector(VCI_12_FUNCTIONS-1 downto 0);
+    vci_12_signed : out std_logic;
+    vci_12_opsize : out std_logic_vector(1 downto 0);
+
+    vci_12_vector_start : out std_logic;
+    vci_12_vector_end   : out std_logic;
+    vci_12_byte_valid   : out std_logic_vector(VCI_12_BYTES-1 downto 0);
+    vci_12_dest_addr_in : out std_logic_vector(31 downto 0);
+
+    vci_12_data_a : out std_logic_vector(VCI_12_BITS-1 downto 0);
+    vci_12_flag_a : out std_logic_vector(VCI_12_BYTES-1 downto 0);
+    vci_12_data_b : out std_logic_vector(VCI_12_BITS-1 downto 0);
+    vci_12_flag_b : out std_logic_vector(VCI_12_BYTES-1 downto 0);
+
+    vci_12_data_out      : in std_logic_vector(VCI_12_BITS-1 downto 0);
+    vci_12_flag_out      : in std_logic_vector(VCI_12_BYTES-1 downto 0);
+    vci_12_byteenable    : in std_logic_vector(VCI_12_BYTES-1 downto 0);
+    vci_12_dest_addr_out : in std_logic_vector(31 downto 0);
+
+    vci_13_clk   : out std_logic;
+    vci_13_reset : out std_logic;
+
+    vci_13_valid  : out std_logic_vector(VCI_13_FUNCTIONS-1 downto 0);
+    vci_13_signed : out std_logic;
+    vci_13_opsize : out std_logic_vector(1 downto 0);
+
+    vci_13_vector_start : out std_logic;
+    vci_13_vector_end   : out std_logic;
+    vci_13_byte_valid   : out std_logic_vector(VCI_13_BYTES-1 downto 0);
+    vci_13_dest_addr_in : out std_logic_vector(31 downto 0);
+
+    vci_13_data_a : out std_logic_vector(VCI_13_BITS-1 downto 0);
+    vci_13_flag_a : out std_logic_vector(VCI_13_BYTES-1 downto 0);
+    vci_13_data_b : out std_logic_vector(VCI_13_BITS-1 downto 0);
+    vci_13_flag_b : out std_logic_vector(VCI_13_BYTES-1 downto 0);
+
+    vci_13_data_out      : in std_logic_vector(VCI_13_BITS-1 downto 0);
+    vci_13_flag_out      : in std_logic_vector(VCI_13_BYTES-1 downto 0);
+    vci_13_byteenable    : in std_logic_vector(VCI_13_BYTES-1 downto 0);
+    vci_13_dest_addr_out : in std_logic_vector(31 downto 0);
+
+    vci_14_clk   : out std_logic;
+    vci_14_reset : out std_logic;
+
+    vci_14_valid  : out std_logic_vector(VCI_14_FUNCTIONS-1 downto 0);
+    vci_14_signed : out std_logic;
+    vci_14_opsize : out std_logic_vector(1 downto 0);
+
+    vci_14_vector_start : out std_logic;
+    vci_14_vector_end   : out std_logic;
+    vci_14_byte_valid   : out std_logic_vector(VCI_14_BYTES-1 downto 0);
+    vci_14_dest_addr_in : out std_logic_vector(31 downto 0);
+
+    vci_14_data_a : out std_logic_vector(VCI_14_BITS-1 downto 0);
+    vci_14_flag_a : out std_logic_vector(VCI_14_BYTES-1 downto 0);
+    vci_14_data_b : out std_logic_vector(VCI_14_BITS-1 downto 0);
+    vci_14_flag_b : out std_logic_vector(VCI_14_BYTES-1 downto 0);
+
+    vci_14_data_out      : in std_logic_vector(VCI_14_BITS-1 downto 0);
+    vci_14_flag_out      : in std_logic_vector(VCI_14_BYTES-1 downto 0);
+    vci_14_byteenable    : in std_logic_vector(VCI_14_BYTES-1 downto 0);
+    vci_14_dest_addr_out : in std_logic_vector(31 downto 0);
+
+    vci_15_clk   : out std_logic;
+    vci_15_reset : out std_logic;
+
+    vci_15_valid  : out std_logic_vector(VCI_15_FUNCTIONS-1 downto 0);
+    vci_15_signed : out std_logic;
+    vci_15_opsize : out std_logic_vector(1 downto 0);
+
+    vci_15_vector_start : out std_logic;
+    vci_15_vector_end   : out std_logic;
+    vci_15_byte_valid   : out std_logic_vector(VCI_15_BYTES-1 downto 0);
+    vci_15_dest_addr_in : out std_logic_vector(31 downto 0);
+
+    vci_15_data_a : out std_logic_vector(VCI_15_BITS-1 downto 0);
+    vci_15_flag_a : out std_logic_vector(VCI_15_BYTES-1 downto 0);
+    vci_15_data_b : out std_logic_vector(VCI_15_BITS-1 downto 0);
+    vci_15_flag_b : out std_logic_vector(VCI_15_BYTES-1 downto 0);
+
+    vci_15_data_out      : in std_logic_vector(VCI_15_BITS-1 downto 0);
+    vci_15_flag_out      : in std_logic_vector(VCI_15_BYTES-1 downto 0);
+    vci_15_byteenable    : in std_logic_vector(VCI_15_BYTES-1 downto 0);
+    vci_15_dest_addr_out : in std_logic_vector(31 downto 0)
+    );
+
+end entity vectorblox_mxp;
+
+architecture rtl of vectorblox_mxp is
+
+  component vectorblox_1
+  generic (
+      VECTOR_LANES       : positive range 1 to MAX_VECTOR_LANES := 1;
+      MEMORY_WIDTH_LANES : positive range 1 to MAX_VECTOR_LANES := 1;
+      SCRATCHPAD_KB      : positive                             := 8;
+      BURSTLENGTH_BYTES  : positive                             := 32;
+      MAX_MASKED_WAVES   : positive range 128 to 1024           := 128;
+      MASK_PARTITIONS    : natural                              := 1;
+
+      INSTR_PORT_CHOICE : natural ;
+		ID_WIDTH           : natural range 0 to 32 := 6;
+		INSTR_ADDR_WIDTH   : natural range 1 to 32 := 6;
+      MIN_MULTIPLIER_HW : min_size_type      := BYTE;
+      CFG_FAM           : config_family_type := CFG_FAM_ALTERA;
+
+      MULFXP_WORD_FRACTION_BITS : natural range 1 to 31 := 25;
+      MULFXP_HALF_FRACTION_BITS : natural range 1 to 15 := 15;
+      MULFXP_BYTE_FRACTION_BITS : natural range 1 to 7  := 4;
+
+      VECTOR_CUSTOM_INSTRUCTIONS : natural range 0 to MAX_CUSTOM_INSTRUCTIONS := 0;
+
+      VCI_0_LANES              : positive range 1 to MAX_VECTOR_LANES         := 1;
+      VCI_0_OPCODE_START       : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_0_OPCODE_END         : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_0_MODIFIES_DEST_ADDR : natural range 0 to 1                         := 0;
+
+      VCI_1_LANES              : positive range 1 to MAX_VECTOR_LANES         := 1;
+      VCI_1_OPCODE_START       : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_1_OPCODE_END         : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_1_MODIFIES_DEST_ADDR : natural range 0 to 1                         := 0;
+
+      VCI_2_LANES              : positive range 1 to MAX_VECTOR_LANES         := 1;
+      VCI_2_OPCODE_START       : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_2_OPCODE_END         : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_2_MODIFIES_DEST_ADDR : natural range 0 to 1                         := 0;
+
+      VCI_3_LANES              : positive range 1 to MAX_VECTOR_LANES         := 1;
+      VCI_3_OPCODE_START       : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_3_OPCODE_END         : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_3_MODIFIES_DEST_ADDR : natural range 0 to 1                         := 0;
+
+      VCI_4_LANES              : positive range 1 to MAX_VECTOR_LANES         := 1;
+      VCI_4_OPCODE_START       : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_4_OPCODE_END         : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_4_MODIFIES_DEST_ADDR : natural range 0 to 1                         := 0;
+
+      VCI_5_LANES              : positive range 1 to MAX_VECTOR_LANES         := 1;
+      VCI_5_OPCODE_START       : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_5_OPCODE_END         : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_5_MODIFIES_DEST_ADDR : natural range 0 to 1                         := 0;
+
+      VCI_6_LANES              : positive range 1 to MAX_VECTOR_LANES         := 1;
+      VCI_6_OPCODE_START       : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_6_OPCODE_END         : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_6_MODIFIES_DEST_ADDR : natural range 0 to 1                         := 0;
+
+      VCI_7_LANES              : positive range 1 to MAX_VECTOR_LANES         := 1;
+      VCI_7_OPCODE_START       : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_7_OPCODE_END         : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_7_MODIFIES_DEST_ADDR : natural range 0 to 1                         := 0;
+
+      VCI_8_LANES              : positive range 1 to MAX_VECTOR_LANES         := 1;
+      VCI_8_OPCODE_START       : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_8_OPCODE_END         : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_8_MODIFIES_DEST_ADDR : natural range 0 to 1                         := 0;
+
+      VCI_9_LANES              : positive range 1 to MAX_VECTOR_LANES         := 1;
+      VCI_9_OPCODE_START       : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_9_OPCODE_END         : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_9_MODIFIES_DEST_ADDR : natural range 0 to 1                         := 0;
+
+      VCI_10_LANES              : positive range 1 to MAX_VECTOR_LANES         := 1;
+      VCI_10_OPCODE_START       : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_10_OPCODE_END         : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_10_MODIFIES_DEST_ADDR : natural range 0 to 1                         := 0;
+
+      VCI_11_LANES              : positive range 1 to MAX_VECTOR_LANES         := 1;
+      VCI_11_OPCODE_START       : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_11_OPCODE_END         : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_11_MODIFIES_DEST_ADDR : natural range 0 to 1                         := 0;
+
+      VCI_12_LANES              : positive range 1 to MAX_VECTOR_LANES         := 1;
+      VCI_12_OPCODE_START       : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_12_OPCODE_END         : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_12_MODIFIES_DEST_ADDR : natural range 0 to 1                         := 0;
+
+      VCI_13_LANES              : positive range 1 to MAX_VECTOR_LANES         := 1;
+      VCI_13_OPCODE_START       : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_13_OPCODE_END         : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_13_MODIFIES_DEST_ADDR : natural range 0 to 1                         := 0;
+
+      VCI_14_LANES              : positive range 1 to MAX_VECTOR_LANES         := 1;
+      VCI_14_OPCODE_START       : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_14_OPCODE_END         : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_14_MODIFIES_DEST_ADDR : natural range 0 to 1                         := 0;
+
+      VCI_15_LANES              : positive range 1 to MAX_VECTOR_LANES         := 1;
+      VCI_15_OPCODE_START       : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_15_OPCODE_END         : natural range 0 to MAX_CUSTOM_INSTRUCTIONS-1 := 0;
+      VCI_15_MODIFIES_DEST_ADDR : natural range 0 to 1                         := 0;
+
+      VCUSTOM0_DEPTH  : natural range 0 to MAX_VCI_DEPTH := 0;
+      VCUSTOM1_DEPTH  : natural range 0 to MAX_VCI_DEPTH := 0;
+      VCUSTOM2_DEPTH  : natural range 0 to MAX_VCI_DEPTH := 0;
+      VCUSTOM3_DEPTH  : natural range 0 to MAX_VCI_DEPTH := 0;
+      VCUSTOM4_DEPTH  : natural range 0 to MAX_VCI_DEPTH := 0;
+      VCUSTOM5_DEPTH  : natural range 0 to MAX_VCI_DEPTH := 0;
+      VCUSTOM6_DEPTH  : natural range 0 to MAX_VCI_DEPTH := 0;
+      VCUSTOM7_DEPTH  : natural range 0 to MAX_VCI_DEPTH := 0;
+      VCUSTOM8_DEPTH  : natural range 0 to MAX_VCI_DEPTH := 0;
+      VCUSTOM9_DEPTH  : natural range 0 to MAX_VCI_DEPTH := 0;
+      VCUSTOM10_DEPTH : natural range 0 to MAX_VCI_DEPTH := 0;
+      VCUSTOM11_DEPTH : natural range 0 to MAX_VCI_DEPTH := 0;
+      VCUSTOM12_DEPTH : natural range 0 to MAX_VCI_DEPTH := 0;
+      VCUSTOM13_DEPTH : natural range 0 to MAX_VCI_DEPTH := 0;
+      VCUSTOM14_DEPTH : natural range 0 to MAX_VCI_DEPTH := 0;
+      VCUSTOM15_DEPTH : natural range 0 to MAX_VCI_DEPTH := 0
+      );
+    port (
+      -- Nios Custom Instruction Interface (Conduit)--
+      ci_clk    : in std_logic := '0';
+      ci_clk_en : in std_logic := '0';
+      ci_reset  : in std_logic := '0';
+
+      ci_start : in  std_logic := '0';
+      ci_done  : out std_logic := '0';
+
+      ci_dataa   : in  std_logic_vector(31 downto 0) := (others => '0');
+      ci_datab   : in  std_logic_vector(31 downto 0) := (others => '0');
+      ci_writerc : in  std_logic;
+      ci_result  : out std_logic_vector(31 downto 0) := (others => '0');
+
+      -- Nios Custom Instruction Interface (slave port)--
+      ncs_clk    : in std_logic := '0';
+      ncs_clk_en : in std_logic := '0';
+      ncs_reset  : in std_logic := '0';
+
+      ncs_start : in  std_logic := '0';
+      ncs_done  : out std_logic := '0';
+
+      ncs_dataa   : in  std_logic_vector(31 downto 0) := (others => '0');
+      ncs_datab   : in  std_logic_vector(31 downto 0) := (others => '0');
+      ncs_writerc : in  std_logic;
+      ncs_result  : out std_logic_vector(31 downto 0) := (others => '0');
+
+      axs_awaddr  : in  std_logic_vector(INSTR_ADDR_WIDTH-1 downto 0)    ;
+      axs_awvalid : in  std_logic                         ;
+      axs_awready : out std_logic                         ;
+      axs_awid    : in  std_logic_vector(ID_WIDTH-1 downto 0)   ;
+      axs_awlen   : in  std_logic_vector(3 downto 0)      ;
+      axs_awsize  : in  std_logic_vector(2 downto 0)      ;
+      axs_awburst : in  std_logic_vector(1 downto 0)      ;
+      axs_awlock  : in  std_logic_vector(1 downto 0)      ;
+      axs_awcache : in  std_logic_vector(3 downto 0)      ;
+      axs_awprot  : in  std_logic_vector(2 downto 0)      ;
+      axs_wdata  : in  std_logic_vector(32-1 downto 0)    ;
+      axs_wstrb  : in  std_logic_vector((32/8)-1 downto 0);
+      axs_wvalid : in  std_logic                          ;
+      axs_wlast  : in  std_logic                          ;
+      axs_wready : out std_logic                          ;
+      axs_wid    : in std_logic_vector(ID_WIDTH-1 downto 0)     ;
+
+      axs_bready : in  std_logic                          ;
+      axs_bresp  : out std_logic_vector(1 downto 0)       ;
+      axs_bvalid : out std_logic                          ;
+      axs_bid    : out std_logic_vector(ID_WIDTH-1 downto 0)    ;
+
+      axs_araddr  : in  std_logic_vector(INSTR_ADDR_WIDTH-1 downto 0)    ;
+      axs_arvalid : in  std_logic                         ;
+      axs_arready : out std_logic                         ;
+      axs_arid    : in  std_logic_vector(ID_WIDTH-1 downto 0)   ;
+      axs_arlen   : in  std_logic_vector(3 downto 0)      ;
+      axs_arsize  : in  std_logic_vector(2 downto 0)      ;
+      axs_arburst : in  std_logic_vector(1 downto 0)      ;
+      axs_arlock  : in  std_logic_vector(1 downto 0)      ;
+      axs_arcache : in  std_logic_vector(3 downto 0)      ;
+      axs_arprot  : in  std_logic_vector(2 downto 0)      ;
+
+
+      axs_rready : in  std_logic                          ;
+      axs_rdata  : out std_logic_vector(32-1 downto 0)    ;
+      axs_rresp  : out std_logic_vector(1 downto 0)       ;
+      axs_rvalid : out std_logic                          ;
+      axs_rlast  : out std_logic                          ;
+      axs_rid    : out std_logic_vector(ID_WIDTH-1 downto 0)     ;
+
+      core_clk    : in std_logic;
+      core_reset  : in std_logic;
+      core_clk_2x : in std_logic;
+
+      master_address       : out std_logic_vector(31 downto 0);
+      master_read          : out std_logic;
+      master_write         : out std_logic;
+      master_waitrequest   : in  std_logic;
+      master_readdatavalid : in  std_logic;
+
+      master_burstcount : out std_logic_vector(BURSTCOUNT_WIDTH-1 downto 0);
+
+      master_writedata  : out std_logic_vector(MEMORY_BUS_WIDTH-1 downto 0);
+      master_byteenable : out std_logic_vector(MEMORY_WIDTH_LANES*4-1 downto 0);
+      master_readdata   : in  std_logic_vector(MEMORY_BUS_WIDTH-1 downto 0);
+
+      slave_address       : in  std_logic_vector(SLAVE_ADDR_WIDTH-1 downto 0);
+      slave_read          : in  std_logic;
+      slave_write         : in  std_logic;
+      slave_waitrequest   : out std_logic;
+      slave_readdatavalid : out std_logic;
+      slave_writedata     : in  std_logic_vector(31 downto 0);
+      slave_byteenable    : in  std_logic_vector(3 downto 0);
+      slave_readdata      : out std_logic_vector(31 downto 0);
+
+      vci_0_clk   : out std_logic;
+      vci_0_reset : out std_logic;
+
+      vci_0_valid  : out std_logic_vector(VCI_0_OPCODE_END-VCI_0_OPCODE_START downto 0);
+      vci_0_signed : out std_logic;
+      vci_0_opsize : out std_logic_vector(1 downto 0);
+
+      vci_0_vector_start : out std_logic;
+      vci_0_vector_end   : out std_logic;
+      vci_0_byte_valid   : out std_logic_vector(VCI_0_LANES*4-1 downto 0);
+      vci_0_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_0_data_a : out std_logic_vector(VCI_0_LANES*32-1 downto 0);
+      vci_0_flag_a : out std_logic_vector(VCI_0_LANES*4-1 downto 0);
+      vci_0_data_b : out std_logic_vector(VCI_0_LANES*32-1 downto 0);
+      vci_0_flag_b : out std_logic_vector(VCI_0_LANES*4-1 downto 0);
+
+      vci_0_data_out      : in std_logic_vector(VCI_0_LANES*32-1 downto 0);
+      vci_0_flag_out      : in std_logic_vector(VCI_0_LANES*4-1 downto 0);
+      vci_0_byteenable    : in std_logic_vector(VCI_0_LANES*4-1 downto 0);
+      vci_0_dest_addr_out : in std_logic_vector(31 downto 0);
+
+      vci_1_clk   : out std_logic;
+      vci_1_reset : out std_logic;
+
+      vci_1_valid  : out std_logic_vector(VCI_1_OPCODE_END-VCI_1_OPCODE_START downto 0);
+      vci_1_signed : out std_logic;
+      vci_1_opsize : out std_logic_vector(1 downto 0);
+
+      vci_1_vector_start : out std_logic;
+      vci_1_vector_end   : out std_logic;
+      vci_1_byte_valid   : out std_logic_vector(VCI_1_LANES*4-1 downto 0);
+      vci_1_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_1_data_a : out std_logic_vector(VCI_1_LANES*32-1 downto 0);
+      vci_1_flag_a : out std_logic_vector(VCI_1_LANES*4-1 downto 0);
+      vci_1_data_b : out std_logic_vector(VCI_1_LANES*32-1 downto 0);
+      vci_1_flag_b : out std_logic_vector(VCI_1_LANES*4-1 downto 0);
+
+      vci_1_data_out      : in std_logic_vector(VCI_1_LANES*32-1 downto 0);
+      vci_1_flag_out      : in std_logic_vector(VCI_1_LANES*4-1 downto 0);
+      vci_1_byteenable    : in std_logic_vector(VCI_1_LANES*4-1 downto 0);
+      vci_1_dest_addr_out : in std_logic_vector(31 downto 0);
+
+      vci_2_clk   : out std_logic;
+      vci_2_reset : out std_logic;
+
+      vci_2_valid  : out std_logic_vector(VCI_2_OPCODE_END-VCI_2_OPCODE_START downto 0);
+      vci_2_signed : out std_logic;
+      vci_2_opsize : out std_logic_vector(1 downto 0);
+
+      vci_2_vector_start : out std_logic;
+      vci_2_vector_end   : out std_logic;
+      vci_2_byte_valid   : out std_logic_vector(VCI_2_LANES*4-1 downto 0);
+      vci_2_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_2_data_a : out std_logic_vector(VCI_2_LANES*32-1 downto 0);
+      vci_2_flag_a : out std_logic_vector(VCI_2_LANES*4-1 downto 0);
+      vci_2_data_b : out std_logic_vector(VCI_2_LANES*32-1 downto 0);
+      vci_2_flag_b : out std_logic_vector(VCI_2_LANES*4-1 downto 0);
+
+      vci_2_data_out      : in std_logic_vector(VCI_2_LANES*32-1 downto 0);
+      vci_2_flag_out      : in std_logic_vector(VCI_2_LANES*4-1 downto 0);
+      vci_2_byteenable    : in std_logic_vector(VCI_2_LANES*4-1 downto 0);
+      vci_2_dest_addr_out : in std_logic_vector(31 downto 0);
+
+      vci_3_clk   : out std_logic;
+      vci_3_reset : out std_logic;
+
+      vci_3_valid  : out std_logic_vector(VCI_3_OPCODE_END-VCI_3_OPCODE_START downto 0);
+      vci_3_signed : out std_logic;
+      vci_3_opsize : out std_logic_vector(1 downto 0);
+
+      vci_3_vector_start : out std_logic;
+      vci_3_vector_end   : out std_logic;
+      vci_3_byte_valid   : out std_logic_vector(VCI_3_LANES*4-1 downto 0);
+      vci_3_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_3_data_a : out std_logic_vector(VCI_3_LANES*32-1 downto 0);
+      vci_3_flag_a : out std_logic_vector(VCI_3_LANES*4-1 downto 0);
+      vci_3_data_b : out std_logic_vector(VCI_3_LANES*32-1 downto 0);
+      vci_3_flag_b : out std_logic_vector(VCI_3_LANES*4-1 downto 0);
+
+      vci_3_data_out      : in std_logic_vector(VCI_3_LANES*32-1 downto 0);
+      vci_3_flag_out      : in std_logic_vector(VCI_3_LANES*4-1 downto 0);
+      vci_3_byteenable    : in std_logic_vector(VCI_3_LANES*4-1 downto 0);
+      vci_3_dest_addr_out : in std_logic_vector(31 downto 0);
+
+      vci_4_clk   : out std_logic;
+      vci_4_reset : out std_logic;
+
+      vci_4_valid  : out std_logic_vector(VCI_4_OPCODE_END-VCI_4_OPCODE_START downto 0);
+      vci_4_signed : out std_logic;
+      vci_4_opsize : out std_logic_vector(1 downto 0);
+
+      vci_4_vector_start : out std_logic;
+      vci_4_vector_end   : out std_logic;
+      vci_4_byte_valid   : out std_logic_vector(VCI_4_LANES*4-1 downto 0);
+      vci_4_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_4_data_a : out std_logic_vector(VCI_4_LANES*32-1 downto 0);
+      vci_4_flag_a : out std_logic_vector(VCI_4_LANES*4-1 downto 0);
+      vci_4_data_b : out std_logic_vector(VCI_4_LANES*32-1 downto 0);
+      vci_4_flag_b : out std_logic_vector(VCI_4_LANES*4-1 downto 0);
+
+      vci_4_data_out      : in std_logic_vector(VCI_4_LANES*32-1 downto 0);
+      vci_4_flag_out      : in std_logic_vector(VCI_4_LANES*4-1 downto 0);
+      vci_4_byteenable    : in std_logic_vector(VCI_4_LANES*4-1 downto 0);
+      vci_4_dest_addr_out : in std_logic_vector(31 downto 0);
+
+      vci_5_clk   : out std_logic;
+      vci_5_reset : out std_logic;
+
+      vci_5_valid  : out std_logic_vector(VCI_5_OPCODE_END-VCI_5_OPCODE_START downto 0);
+      vci_5_signed : out std_logic;
+      vci_5_opsize : out std_logic_vector(1 downto 0);
+
+      vci_5_vector_start : out std_logic;
+      vci_5_vector_end   : out std_logic;
+      vci_5_byte_valid   : out std_logic_vector(VCI_5_LANES*4-1 downto 0);
+      vci_5_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_5_data_a : out std_logic_vector(VCI_5_LANES*32-1 downto 0);
+      vci_5_flag_a : out std_logic_vector(VCI_5_LANES*4-1 downto 0);
+      vci_5_data_b : out std_logic_vector(VCI_5_LANES*32-1 downto 0);
+      vci_5_flag_b : out std_logic_vector(VCI_5_LANES*4-1 downto 0);
+
+      vci_5_data_out      : in std_logic_vector(VCI_5_LANES*32-1 downto 0);
+      vci_5_flag_out      : in std_logic_vector(VCI_5_LANES*4-1 downto 0);
+      vci_5_byteenable    : in std_logic_vector(VCI_5_LANES*4-1 downto 0);
+      vci_5_dest_addr_out : in std_logic_vector(31 downto 0);
+
+      vci_6_clk   : out std_logic;
+      vci_6_reset : out std_logic;
+
+      vci_6_valid  : out std_logic_vector(VCI_6_OPCODE_END-VCI_6_OPCODE_START downto 0);
+      vci_6_signed : out std_logic;
+      vci_6_opsize : out std_logic_vector(1 downto 0);
+
+      vci_6_vector_start : out std_logic;
+      vci_6_vector_end   : out std_logic;
+      vci_6_byte_valid   : out std_logic_vector(VCI_6_LANES*4-1 downto 0);
+      vci_6_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_6_data_a : out std_logic_vector(VCI_6_LANES*32-1 downto 0);
+      vci_6_flag_a : out std_logic_vector(VCI_6_LANES*4-1 downto 0);
+      vci_6_data_b : out std_logic_vector(VCI_6_LANES*32-1 downto 0);
+      vci_6_flag_b : out std_logic_vector(VCI_6_LANES*4-1 downto 0);
+
+      vci_6_data_out      : in std_logic_vector(VCI_6_LANES*32-1 downto 0);
+      vci_6_flag_out      : in std_logic_vector(VCI_6_LANES*4-1 downto 0);
+      vci_6_byteenable    : in std_logic_vector(VCI_6_LANES*4-1 downto 0);
+      vci_6_dest_addr_out : in std_logic_vector(31 downto 0);
+
+      vci_7_clk   : out std_logic;
+      vci_7_reset : out std_logic;
+
+      vci_7_valid  : out std_logic_vector(VCI_7_OPCODE_END-VCI_7_OPCODE_START downto 0);
+      vci_7_signed : out std_logic;
+      vci_7_opsize : out std_logic_vector(1 downto 0);
+
+      vci_7_vector_start : out std_logic;
+      vci_7_vector_end   : out std_logic;
+      vci_7_byte_valid   : out std_logic_vector(VCI_7_LANES*4-1 downto 0);
+      vci_7_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_7_data_a : out std_logic_vector(VCI_7_LANES*32-1 downto 0);
+      vci_7_flag_a : out std_logic_vector(VCI_7_LANES*4-1 downto 0);
+      vci_7_data_b : out std_logic_vector(VCI_7_LANES*32-1 downto 0);
+      vci_7_flag_b : out std_logic_vector(VCI_7_LANES*4-1 downto 0);
+
+      vci_7_data_out      : in std_logic_vector(VCI_7_LANES*32-1 downto 0);
+      vci_7_flag_out      : in std_logic_vector(VCI_7_LANES*4-1 downto 0);
+      vci_7_byteenable    : in std_logic_vector(VCI_7_LANES*4-1 downto 0);
+      vci_7_dest_addr_out : in std_logic_vector(31 downto 0);
+
+      vci_8_clk   : out std_logic;
+      vci_8_reset : out std_logic;
+
+      vci_8_valid  : out std_logic_vector(VCI_8_OPCODE_END-VCI_8_OPCODE_START downto 0);
+      vci_8_signed : out std_logic;
+      vci_8_opsize : out std_logic_vector(1 downto 0);
+
+      vci_8_vector_start : out std_logic;
+      vci_8_vector_end   : out std_logic;
+      vci_8_byte_valid   : out std_logic_vector(VCI_8_LANES*4-1 downto 0);
+      vci_8_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_8_data_a : out std_logic_vector(VCI_8_LANES*32-1 downto 0);
+      vci_8_flag_a : out std_logic_vector(VCI_8_LANES*4-1 downto 0);
+      vci_8_data_b : out std_logic_vector(VCI_8_LANES*32-1 downto 0);
+      vci_8_flag_b : out std_logic_vector(VCI_8_LANES*4-1 downto 0);
+
+      vci_8_data_out      : in std_logic_vector(VCI_8_LANES*32-1 downto 0);
+      vci_8_flag_out      : in std_logic_vector(VCI_8_LANES*4-1 downto 0);
+      vci_8_byteenable    : in std_logic_vector(VCI_8_LANES*4-1 downto 0);
+      vci_8_dest_addr_out : in std_logic_vector(31 downto 0);
+
+      vci_9_clk   : out std_logic;
+      vci_9_reset : out std_logic;
+
+      vci_9_valid  : out std_logic_vector(VCI_9_OPCODE_END-VCI_9_OPCODE_START downto 0);
+      vci_9_signed : out std_logic;
+      vci_9_opsize : out std_logic_vector(1 downto 0);
+
+      vci_9_vector_start : out std_logic;
+      vci_9_vector_end   : out std_logic;
+      vci_9_byte_valid   : out std_logic_vector(VCI_9_LANES*4-1 downto 0);
+      vci_9_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_9_data_a : out std_logic_vector(VCI_9_LANES*32-1 downto 0);
+      vci_9_flag_a : out std_logic_vector(VCI_9_LANES*4-1 downto 0);
+      vci_9_data_b : out std_logic_vector(VCI_9_LANES*32-1 downto 0);
+      vci_9_flag_b : out std_logic_vector(VCI_9_LANES*4-1 downto 0);
+
+      vci_9_data_out      : in std_logic_vector(VCI_9_LANES*32-1 downto 0);
+      vci_9_flag_out      : in std_logic_vector(VCI_9_LANES*4-1 downto 0);
+      vci_9_byteenable    : in std_logic_vector(VCI_9_LANES*4-1 downto 0);
+      vci_9_dest_addr_out : in std_logic_vector(31 downto 0);
+
+      vci_10_clk   : out std_logic;
+      vci_10_reset : out std_logic;
+
+      vci_10_valid  : out std_logic_vector(VCI_10_OPCODE_END-VCI_10_OPCODE_START downto 0);
+      vci_10_signed : out std_logic;
+      vci_10_opsize : out std_logic_vector(1 downto 0);
+
+      vci_10_vector_start : out std_logic;
+      vci_10_vector_end   : out std_logic;
+      vci_10_byte_valid   : out std_logic_vector(VCI_10_LANES*4-1 downto 0);
+      vci_10_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_10_data_a : out std_logic_vector(VCI_10_LANES*32-1 downto 0);
+      vci_10_flag_a : out std_logic_vector(VCI_10_LANES*4-1 downto 0);
+      vci_10_data_b : out std_logic_vector(VCI_10_LANES*32-1 downto 0);
+      vci_10_flag_b : out std_logic_vector(VCI_10_LANES*4-1 downto 0);
+
+      vci_10_data_out      : in std_logic_vector(VCI_10_LANES*32-1 downto 0);
+      vci_10_flag_out      : in std_logic_vector(VCI_10_LANES*4-1 downto 0);
+      vci_10_byteenable    : in std_logic_vector(VCI_10_LANES*4-1 downto 0);
+      vci_10_dest_addr_out : in std_logic_vector(31 downto 0);
+
+      vci_11_clk   : out std_logic;
+      vci_11_reset : out std_logic;
+
+      vci_11_valid  : out std_logic_vector(VCI_11_OPCODE_END-VCI_11_OPCODE_START downto 0);
+      vci_11_signed : out std_logic;
+      vci_11_opsize : out std_logic_vector(1 downto 0);
+
+      vci_11_vector_start : out std_logic;
+      vci_11_vector_end   : out std_logic;
+      vci_11_byte_valid   : out std_logic_vector(VCI_11_LANES*4-1 downto 0);
+      vci_11_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_11_data_a : out std_logic_vector(VCI_11_LANES*32-1 downto 0);
+      vci_11_flag_a : out std_logic_vector(VCI_11_LANES*4-1 downto 0);
+      vci_11_data_b : out std_logic_vector(VCI_11_LANES*32-1 downto 0);
+      vci_11_flag_b : out std_logic_vector(VCI_11_LANES*4-1 downto 0);
+
+      vci_11_data_out      : in std_logic_vector(VCI_11_LANES*32-1 downto 0);
+      vci_11_flag_out      : in std_logic_vector(VCI_11_LANES*4-1 downto 0);
+      vci_11_byteenable    : in std_logic_vector(VCI_11_LANES*4-1 downto 0);
+      vci_11_dest_addr_out : in std_logic_vector(31 downto 0);
+
+      vci_12_clk   : out std_logic;
+      vci_12_reset : out std_logic;
+
+      vci_12_valid  : out std_logic_vector(VCI_12_OPCODE_END-VCI_12_OPCODE_START downto 0);
+      vci_12_signed : out std_logic;
+      vci_12_opsize : out std_logic_vector(1 downto 0);
+
+      vci_12_vector_start : out std_logic;
+      vci_12_vector_end   : out std_logic;
+      vci_12_byte_valid   : out std_logic_vector(VCI_12_LANES*4-1 downto 0);
+      vci_12_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_12_data_a : out std_logic_vector(VCI_12_LANES*32-1 downto 0);
+      vci_12_flag_a : out std_logic_vector(VCI_12_LANES*4-1 downto 0);
+      vci_12_data_b : out std_logic_vector(VCI_12_LANES*32-1 downto 0);
+      vci_12_flag_b : out std_logic_vector(VCI_12_LANES*4-1 downto 0);
+
+      vci_12_data_out      : in std_logic_vector(VCI_12_LANES*32-1 downto 0);
+      vci_12_flag_out      : in std_logic_vector(VCI_12_LANES*4-1 downto 0);
+      vci_12_byteenable    : in std_logic_vector(VCI_12_LANES*4-1 downto 0);
+      vci_12_dest_addr_out : in std_logic_vector(31 downto 0);
+
+      vci_13_clk   : out std_logic;
+      vci_13_reset : out std_logic;
+
+      vci_13_valid  : out std_logic_vector(VCI_13_OPCODE_END-VCI_13_OPCODE_START downto 0);
+      vci_13_signed : out std_logic;
+      vci_13_opsize : out std_logic_vector(1 downto 0);
+
+      vci_13_vector_start : out std_logic;
+      vci_13_vector_end   : out std_logic;
+      vci_13_byte_valid   : out std_logic_vector(VCI_13_LANES*4-1 downto 0);
+      vci_13_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_13_data_a : out std_logic_vector(VCI_13_LANES*32-1 downto 0);
+      vci_13_flag_a : out std_logic_vector(VCI_13_LANES*4-1 downto 0);
+      vci_13_data_b : out std_logic_vector(VCI_13_LANES*32-1 downto 0);
+      vci_13_flag_b : out std_logic_vector(VCI_13_LANES*4-1 downto 0);
+
+      vci_13_data_out      : in std_logic_vector(VCI_13_LANES*32-1 downto 0);
+      vci_13_flag_out      : in std_logic_vector(VCI_13_LANES*4-1 downto 0);
+      vci_13_byteenable    : in std_logic_vector(VCI_13_LANES*4-1 downto 0);
+      vci_13_dest_addr_out : in std_logic_vector(31 downto 0);
+
+      vci_14_clk   : out std_logic;
+      vci_14_reset : out std_logic;
+
+      vci_14_valid  : out std_logic_vector(VCI_14_OPCODE_END-VCI_14_OPCODE_START downto 0);
+      vci_14_signed : out std_logic;
+      vci_14_opsize : out std_logic_vector(1 downto 0);
+
+      vci_14_vector_start : out std_logic;
+      vci_14_vector_end   : out std_logic;
+      vci_14_byte_valid   : out std_logic_vector(VCI_14_LANES*4-1 downto 0);
+      vci_14_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_14_data_a : out std_logic_vector(VCI_14_LANES*32-1 downto 0);
+      vci_14_flag_a : out std_logic_vector(VCI_14_LANES*4-1 downto 0);
+      vci_14_data_b : out std_logic_vector(VCI_14_LANES*32-1 downto 0);
+      vci_14_flag_b : out std_logic_vector(VCI_14_LANES*4-1 downto 0);
+
+      vci_14_data_out      : in std_logic_vector(VCI_14_LANES*32-1 downto 0);
+      vci_14_flag_out      : in std_logic_vector(VCI_14_LANES*4-1 downto 0);
+      vci_14_byteenable    : in std_logic_vector(VCI_14_LANES*4-1 downto 0);
+      vci_14_dest_addr_out : in std_logic_vector(31 downto 0);
+
+      vci_15_clk   : out std_logic;
+      vci_15_reset : out std_logic;
+
+      vci_15_valid  : out std_logic_vector(VCI_15_OPCODE_END-VCI_15_OPCODE_START downto 0);
+      vci_15_signed : out std_logic;
+      vci_15_opsize : out std_logic_vector(1 downto 0);
+
+      vci_15_vector_start : out std_logic;
+      vci_15_vector_end   : out std_logic;
+      vci_15_byte_valid   : out std_logic_vector(VCI_15_LANES*4-1 downto 0);
+      vci_15_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_15_data_a : out std_logic_vector(VCI_15_LANES*32-1 downto 0);
+      vci_15_flag_a : out std_logic_vector(VCI_15_LANES*4-1 downto 0);
+      vci_15_data_b : out std_logic_vector(VCI_15_LANES*32-1 downto 0);
+      vci_15_flag_b : out std_logic_vector(VCI_15_LANES*4-1 downto 0);
+
+      vci_15_data_out      : in std_logic_vector(VCI_15_LANES*32-1 downto 0);
+      vci_15_flag_out      : in std_logic_vector(VCI_15_LANES*4-1 downto 0);
+      vci_15_byteenable    : in std_logic_vector(VCI_15_LANES*4-1 downto 0);
+      vci_15_dest_addr_out : in std_logic_vector(31 downto 0)
+      );
+  end component;
+
+begin
+
+  vectorblox_1_0 : component vectorblox_1
+    generic map (
+      VECTOR_LANES       => VECTOR_LANES,
+      MEMORY_WIDTH_LANES => MEMORY_WIDTH_LANES,
+      SCRATCHPAD_KB      => SCRATCHPAD_KB,
+      BURSTLENGTH_BYTES  => BURSTLENGTH_BYTES,
+      MAX_MASKED_WAVES   => MAX_MASKED_WAVES,
+      MASK_PARTITIONS    => MASK_PARTITIONS,
+
+      INSTR_PORT_CHOICE  => INSTR_PORT_CHOICE_TMPLT,
+		ID_WIDTH           => ID_WIDTH,
+		INSTR_ADDR_WIDTH   => INSTR_ADDR_WIDTH,
+      MIN_MULTIPLIER_HW => MIN_MULTIPLIER_HW,
+
+
+      MULFXP_WORD_FRACTION_BITS => MULFXP_WORD_FRACTION_BITS,
+      MULFXP_HALF_FRACTION_BITS => MULFXP_HALF_FRACTION_BITS,
+      MULFXP_BYTE_FRACTION_BITS => MULFXP_BYTE_FRACTION_BITS,
+
+      VECTOR_CUSTOM_INSTRUCTIONS => VECTOR_CUSTOM_INSTRUCTIONS,
+
+      VCI_0_LANES              => VCI_0_LANES,
+      VCI_0_OPCODE_START       => VCI_0_OPCODE_START,
+      VCI_0_OPCODE_END         => VCI_0_OPCODE_END,
+      VCI_0_MODIFIES_DEST_ADDR => VCI_0_MODIFIES_DEST_ADDR,
+
+      VCI_1_LANES              => VCI_1_LANES,
+      VCI_1_OPCODE_START       => VCI_1_OPCODE_START,
+      VCI_1_OPCODE_END         => VCI_1_OPCODE_END,
+      VCI_1_MODIFIES_DEST_ADDR => VCI_1_MODIFIES_DEST_ADDR,
+
+      VCI_2_LANES              => VCI_2_LANES,
+      VCI_2_OPCODE_START       => VCI_2_OPCODE_START,
+      VCI_2_OPCODE_END         => VCI_2_OPCODE_END,
+      VCI_2_MODIFIES_DEST_ADDR => VCI_2_MODIFIES_DEST_ADDR,
+
+      VCI_3_LANES              => VCI_3_LANES,
+      VCI_3_OPCODE_START       => VCI_3_OPCODE_START,
+      VCI_3_OPCODE_END         => VCI_3_OPCODE_END,
+      VCI_3_MODIFIES_DEST_ADDR => VCI_3_MODIFIES_DEST_ADDR,
+
+      VCI_4_LANES              => VCI_4_LANES,
+      VCI_4_OPCODE_START       => VCI_4_OPCODE_START,
+      VCI_4_OPCODE_END         => VCI_4_OPCODE_END,
+      VCI_4_MODIFIES_DEST_ADDR => VCI_4_MODIFIES_DEST_ADDR,
+
+      VCI_5_LANES              => VCI_5_LANES,
+      VCI_5_OPCODE_START       => VCI_5_OPCODE_START,
+      VCI_5_OPCODE_END         => VCI_5_OPCODE_END,
+      VCI_5_MODIFIES_DEST_ADDR => VCI_5_MODIFIES_DEST_ADDR,
+
+      VCI_6_LANES              => VCI_6_LANES,
+      VCI_6_OPCODE_START       => VCI_6_OPCODE_START,
+      VCI_6_OPCODE_END         => VCI_6_OPCODE_END,
+      VCI_6_MODIFIES_DEST_ADDR => VCI_6_MODIFIES_DEST_ADDR,
+
+      VCI_7_LANES              => VCI_7_LANES,
+      VCI_7_OPCODE_START       => VCI_7_OPCODE_START,
+      VCI_7_OPCODE_END         => VCI_7_OPCODE_END,
+      VCI_7_MODIFIES_DEST_ADDR => VCI_7_MODIFIES_DEST_ADDR,
+
+      VCI_8_LANES              => VCI_8_LANES,
+      VCI_8_OPCODE_START       => VCI_8_OPCODE_START,
+      VCI_8_OPCODE_END         => VCI_8_OPCODE_END,
+      VCI_8_MODIFIES_DEST_ADDR => VCI_8_MODIFIES_DEST_ADDR,
+
+      VCI_9_LANES              => VCI_9_LANES,
+      VCI_9_OPCODE_START       => VCI_9_OPCODE_START,
+      VCI_9_OPCODE_END         => VCI_9_OPCODE_END,
+      VCI_9_MODIFIES_DEST_ADDR => VCI_9_MODIFIES_DEST_ADDR,
+
+      VCI_10_LANES              => VCI_10_LANES,
+      VCI_10_OPCODE_START       => VCI_10_OPCODE_START,
+      VCI_10_OPCODE_END         => VCI_10_OPCODE_END,
+      VCI_10_MODIFIES_DEST_ADDR => VCI_10_MODIFIES_DEST_ADDR,
+
+      VCI_11_LANES              => VCI_11_LANES,
+      VCI_11_OPCODE_START       => VCI_11_OPCODE_START,
+      VCI_11_OPCODE_END         => VCI_11_OPCODE_END,
+      VCI_11_MODIFIES_DEST_ADDR => VCI_11_MODIFIES_DEST_ADDR,
+
+      VCI_12_LANES              => VCI_12_LANES,
+      VCI_12_OPCODE_START       => VCI_12_OPCODE_START,
+      VCI_12_OPCODE_END         => VCI_12_OPCODE_END,
+      VCI_12_MODIFIES_DEST_ADDR => VCI_12_MODIFIES_DEST_ADDR,
+
+      VCI_13_LANES              => VCI_13_LANES,
+      VCI_13_OPCODE_START       => VCI_13_OPCODE_START,
+      VCI_13_OPCODE_END         => VCI_13_OPCODE_END,
+      VCI_13_MODIFIES_DEST_ADDR => VCI_13_MODIFIES_DEST_ADDR,
+
+      VCI_14_LANES              => VCI_14_LANES,
+      VCI_14_OPCODE_START       => VCI_14_OPCODE_START,
+      VCI_14_OPCODE_END         => VCI_14_OPCODE_END,
+      VCI_14_MODIFIES_DEST_ADDR => VCI_14_MODIFIES_DEST_ADDR,
+
+      VCI_15_LANES              => VCI_15_LANES,
+      VCI_15_OPCODE_START       => VCI_15_OPCODE_START,
+      VCI_15_OPCODE_END         => VCI_15_OPCODE_END,
+      VCI_15_MODIFIES_DEST_ADDR => VCI_15_MODIFIES_DEST_ADDR,
+
+      VCUSTOM0_DEPTH  => VCUSTOM0_DEPTH,
+      VCUSTOM1_DEPTH  => VCUSTOM1_DEPTH,
+      VCUSTOM2_DEPTH  => VCUSTOM2_DEPTH,
+      VCUSTOM3_DEPTH  => VCUSTOM3_DEPTH,
+      VCUSTOM4_DEPTH  => VCUSTOM4_DEPTH,
+      VCUSTOM5_DEPTH  => VCUSTOM5_DEPTH,
+      VCUSTOM6_DEPTH  => VCUSTOM6_DEPTH,
+      VCUSTOM7_DEPTH  => VCUSTOM7_DEPTH,
+      VCUSTOM8_DEPTH  => VCUSTOM8_DEPTH,
+      VCUSTOM9_DEPTH  => VCUSTOM9_DEPTH,
+      VCUSTOM10_DEPTH => VCUSTOM10_DEPTH,
+      VCUSTOM11_DEPTH => VCUSTOM11_DEPTH,
+      VCUSTOM12_DEPTH => VCUSTOM12_DEPTH,
+      VCUSTOM13_DEPTH => VCUSTOM13_DEPTH,
+      VCUSTOM14_DEPTH => VCUSTOM14_DEPTH,
+      VCUSTOM15_DEPTH => VCUSTOM15_DEPTH
+      )
+    port map (
+      ci_clk    => ci_clk,
+      ci_clk_en => ci_clk_en,
+      ci_reset  => ci_reset,
+
+      ci_start => ci_start,
+      ci_done  => ci_done,
+
+      ci_dataa   => ci_dataa,
+      ci_datab   => ci_datab,
+      ci_writerc => ci_writerc,
+      ci_result  => ci_result,
+
+      ncs_clk    => ncs_clk,
+      ncs_clk_en => ncs_clk_en,
+      ncs_reset  => ncs_reset,
+
+      ncs_start => ncs_start,
+      ncs_done  => ncs_done,
+
+      ncs_dataa   => ncs_dataa,
+      ncs_datab   => ncs_datab,
+      ncs_writerc => ncs_writerc,
+      ncs_result  => ncs_result,
+
+      core_clk    => core_clk,
+      core_reset  => core_reset,
+      core_clk_2x => core_clk_2x,
+
+      axs_awaddr  => axs_awaddr  ,
+      axs_awvalid => axs_awvalid ,
+      axs_awready => axs_awready ,
+      axs_awid    => axs_awid    ,
+      axs_awlen   => axs_awlen   ,
+      axs_awsize  => axs_awsize  ,
+      axs_awburst => axs_awburst ,
+      axs_awlock  => axs_awlock  ,
+      axs_awcache => axs_awcache ,
+      axs_awprot  => axs_awprot  ,
+
+      axs_wdata   => axs_wdata   ,
+      axs_wstrb   => axs_wstrb   ,
+      axs_wvalid  => axs_wvalid  ,
+      axs_wlast   => axs_wlast   ,
+      axs_wready  => axs_wready  ,
+      axs_wid     => axs_wid     ,
+
+      axs_bready  => axs_bready  ,
+      axs_bresp   => axs_bresp   ,
+      axs_bvalid  => axs_bvalid  ,
+      axs_bid     => axs_bid     ,
+
+      axs_araddr  => axs_araddr  ,
+      axs_arvalid => axs_arvalid ,
+      axs_arready => axs_arready ,
+      axs_arid    => axs_arid    ,
+      axs_arlen   => axs_arlen   ,
+      axs_arsize  => axs_arsize  ,
+      axs_arburst => axs_arburst ,
+      axs_arlock  => axs_arlock  ,
+      axs_arcache => axs_arcache ,
+      axs_arprot  => axs_arprot  ,
+
+      axs_rready  => axs_rready  ,
+      axs_rdata   => axs_rdata   ,
+      axs_rresp   => axs_rresp   ,
+      axs_rvalid  => axs_rvalid  ,
+      axs_rlast   => axs_rlast   ,
+      axs_rid     => axs_rid     ,
+
+
+
+
+      master_address       => master_address,
+      master_read          => master_read,
+      master_write         => master_write,
+      master_waitrequest   => master_waitrequest,
+      master_readdatavalid => master_readdatavalid,
+
+      master_burstcount => master_burstcount,
+
+      master_writedata  => master_writedata,
+      master_byteenable => master_byteenable,
+      master_readdata   => master_readdata,
+
+      slave_address       => slave_address,
+      slave_read          => slave_read,
+      slave_write         => slave_write,
+      slave_waitrequest   => slave_waitrequest,
+      slave_readdatavalid => slave_readdatavalid,
+
+      slave_writedata  => slave_writedata,
+      slave_byteenable => slave_byteenable,
+      slave_readdata   => slave_readdata,
+
+      vci_0_clk   => vci_0_clk,
+      vci_0_reset => vci_0_reset,
+
+      vci_0_valid  => vci_0_valid,
+      vci_0_signed => vci_0_signed,
+      vci_0_opsize => vci_0_opsize,
+
+      vci_0_vector_start => vci_0_vector_start,
+      vci_0_vector_end   => vci_0_vector_end,
+      vci_0_byte_valid   => vci_0_byte_valid,
+      vci_0_dest_addr_in => vci_0_dest_addr_in,
+
+      vci_0_data_a => vci_0_data_a,
+      vci_0_flag_a => vci_0_flag_a,
+      vci_0_data_b => vci_0_data_b,
+      vci_0_flag_b => vci_0_flag_b,
+
+      vci_0_data_out      => vci_0_data_out,
+      vci_0_flag_out      => vci_0_flag_out,
+      vci_0_byteenable    => vci_0_byteenable,
+      vci_0_dest_addr_out => vci_0_dest_addr_out,
+
+      vci_1_clk   => vci_1_clk,
+      vci_1_reset => vci_1_reset,
+
+      vci_1_valid  => vci_1_valid,
+      vci_1_signed => vci_1_signed,
+      vci_1_opsize => vci_1_opsize,
+
+      vci_1_vector_start => vci_1_vector_start,
+      vci_1_vector_end   => vci_1_vector_end,
+      vci_1_byte_valid   => vci_1_byte_valid,
+      vci_1_dest_addr_in => vci_1_dest_addr_in,
+
+      vci_1_data_a => vci_1_data_a,
+      vci_1_flag_a => vci_1_flag_a,
+      vci_1_data_b => vci_1_data_b,
+      vci_1_flag_b => vci_1_flag_b,
+
+      vci_1_data_out      => vci_1_data_out,
+      vci_1_flag_out      => vci_1_flag_out,
+      vci_1_byteenable    => vci_1_byteenable,
+      vci_1_dest_addr_out => vci_1_dest_addr_out,
+
+      vci_2_clk   => vci_2_clk,
+      vci_2_reset => vci_2_reset,
+
+      vci_2_valid  => vci_2_valid,
+      vci_2_signed => vci_2_signed,
+      vci_2_opsize => vci_2_opsize,
+
+      vci_2_vector_start => vci_2_vector_start,
+      vci_2_vector_end   => vci_2_vector_end,
+      vci_2_byte_valid   => vci_2_byte_valid,
+      vci_2_dest_addr_in => vci_2_dest_addr_in,
+
+      vci_2_data_a => vci_2_data_a,
+      vci_2_flag_a => vci_2_flag_a,
+      vci_2_data_b => vci_2_data_b,
+      vci_2_flag_b => vci_2_flag_b,
+
+      vci_2_data_out      => vci_2_data_out,
+      vci_2_flag_out      => vci_2_flag_out,
+      vci_2_byteenable    => vci_2_byteenable,
+      vci_2_dest_addr_out => vci_2_dest_addr_out,
+
+      vci_3_clk   => vci_3_clk,
+      vci_3_reset => vci_3_reset,
+
+      vci_3_valid  => vci_3_valid,
+      vci_3_signed => vci_3_signed,
+      vci_3_opsize => vci_3_opsize,
+
+      vci_3_vector_start => vci_3_vector_start,
+      vci_3_vector_end   => vci_3_vector_end,
+      vci_3_byte_valid   => vci_3_byte_valid,
+      vci_3_dest_addr_in => vci_3_dest_addr_in,
+
+      vci_3_data_a => vci_3_data_a,
+      vci_3_flag_a => vci_3_flag_a,
+      vci_3_data_b => vci_3_data_b,
+      vci_3_flag_b => vci_3_flag_b,
+
+      vci_3_data_out      => vci_3_data_out,
+      vci_3_flag_out      => vci_3_flag_out,
+      vci_3_byteenable    => vci_3_byteenable,
+      vci_3_dest_addr_out => vci_3_dest_addr_out,
+
+      vci_4_clk   => vci_4_clk,
+      vci_4_reset => vci_4_reset,
+
+      vci_4_valid  => vci_4_valid,
+      vci_4_signed => vci_4_signed,
+      vci_4_opsize => vci_4_opsize,
+
+      vci_4_vector_start => vci_4_vector_start,
+      vci_4_vector_end   => vci_4_vector_end,
+      vci_4_byte_valid   => vci_4_byte_valid,
+      vci_4_dest_addr_in => vci_4_dest_addr_in,
+
+      vci_4_data_a => vci_4_data_a,
+      vci_4_flag_a => vci_4_flag_a,
+      vci_4_data_b => vci_4_data_b,
+      vci_4_flag_b => vci_4_flag_b,
+
+      vci_4_data_out      => vci_4_data_out,
+      vci_4_flag_out      => vci_4_flag_out,
+      vci_4_byteenable    => vci_4_byteenable,
+      vci_4_dest_addr_out => vci_4_dest_addr_out,
+
+      vci_5_clk   => vci_5_clk,
+      vci_5_reset => vci_5_reset,
+
+      vci_5_valid  => vci_5_valid,
+      vci_5_signed => vci_5_signed,
+      vci_5_opsize => vci_5_opsize,
+
+      vci_5_vector_start => vci_5_vector_start,
+      vci_5_vector_end   => vci_5_vector_end,
+      vci_5_byte_valid   => vci_5_byte_valid,
+      vci_5_dest_addr_in => vci_5_dest_addr_in,
+
+      vci_5_data_a => vci_5_data_a,
+      vci_5_flag_a => vci_5_flag_a,
+      vci_5_data_b => vci_5_data_b,
+      vci_5_flag_b => vci_5_flag_b,
+
+      vci_5_data_out      => vci_5_data_out,
+      vci_5_flag_out      => vci_5_flag_out,
+      vci_5_byteenable    => vci_5_byteenable,
+      vci_5_dest_addr_out => vci_5_dest_addr_out,
+
+      vci_6_clk   => vci_6_clk,
+      vci_6_reset => vci_6_reset,
+
+      vci_6_valid  => vci_6_valid,
+      vci_6_signed => vci_6_signed,
+      vci_6_opsize => vci_6_opsize,
+
+      vci_6_vector_start => vci_6_vector_start,
+      vci_6_vector_end   => vci_6_vector_end,
+      vci_6_byte_valid   => vci_6_byte_valid,
+      vci_6_dest_addr_in => vci_6_dest_addr_in,
+
+      vci_6_data_a => vci_6_data_a,
+      vci_6_flag_a => vci_6_flag_a,
+      vci_6_data_b => vci_6_data_b,
+      vci_6_flag_b => vci_6_flag_b,
+
+      vci_6_data_out      => vci_6_data_out,
+      vci_6_flag_out      => vci_6_flag_out,
+      vci_6_byteenable    => vci_6_byteenable,
+      vci_6_dest_addr_out => vci_6_dest_addr_out,
+
+      vci_7_clk   => vci_7_clk,
+      vci_7_reset => vci_7_reset,
+
+      vci_7_valid  => vci_7_valid,
+      vci_7_signed => vci_7_signed,
+      vci_7_opsize => vci_7_opsize,
+
+      vci_7_vector_start => vci_7_vector_start,
+      vci_7_vector_end   => vci_7_vector_end,
+      vci_7_byte_valid   => vci_7_byte_valid,
+      vci_7_dest_addr_in => vci_7_dest_addr_in,
+
+      vci_7_data_a => vci_7_data_a,
+      vci_7_flag_a => vci_7_flag_a,
+      vci_7_data_b => vci_7_data_b,
+      vci_7_flag_b => vci_7_flag_b,
+
+      vci_7_data_out      => vci_7_data_out,
+      vci_7_flag_out      => vci_7_flag_out,
+      vci_7_byteenable    => vci_7_byteenable,
+      vci_7_dest_addr_out => vci_7_dest_addr_out,
+
+      vci_8_clk   => vci_8_clk,
+      vci_8_reset => vci_8_reset,
+
+      vci_8_valid  => vci_8_valid,
+      vci_8_signed => vci_8_signed,
+      vci_8_opsize => vci_8_opsize,
+
+      vci_8_vector_start => vci_8_vector_start,
+      vci_8_vector_end   => vci_8_vector_end,
+      vci_8_byte_valid   => vci_8_byte_valid,
+      vci_8_dest_addr_in => vci_8_dest_addr_in,
+
+      vci_8_data_a => vci_8_data_a,
+      vci_8_flag_a => vci_8_flag_a,
+      vci_8_data_b => vci_8_data_b,
+      vci_8_flag_b => vci_8_flag_b,
+
+      vci_8_data_out      => vci_8_data_out,
+      vci_8_flag_out      => vci_8_flag_out,
+      vci_8_byteenable    => vci_8_byteenable,
+      vci_8_dest_addr_out => vci_8_dest_addr_out,
+
+      vci_9_clk   => vci_9_clk,
+      vci_9_reset => vci_9_reset,
+
+      vci_9_valid  => vci_9_valid,
+      vci_9_signed => vci_9_signed,
+      vci_9_opsize => vci_9_opsize,
+
+      vci_9_vector_start => vci_9_vector_start,
+      vci_9_vector_end   => vci_9_vector_end,
+      vci_9_byte_valid   => vci_9_byte_valid,
+      vci_9_dest_addr_in => vci_9_dest_addr_in,
+
+      vci_9_data_a => vci_9_data_a,
+      vci_9_flag_a => vci_9_flag_a,
+      vci_9_data_b => vci_9_data_b,
+      vci_9_flag_b => vci_9_flag_b,
+
+      vci_9_data_out      => vci_9_data_out,
+      vci_9_flag_out      => vci_9_flag_out,
+      vci_9_byteenable    => vci_9_byteenable,
+      vci_9_dest_addr_out => vci_9_dest_addr_out,
+
+      vci_10_clk   => vci_10_clk,
+      vci_10_reset => vci_10_reset,
+
+      vci_10_valid  => vci_10_valid,
+      vci_10_signed => vci_10_signed,
+      vci_10_opsize => vci_10_opsize,
+
+      vci_10_vector_start => vci_10_vector_start,
+      vci_10_vector_end   => vci_10_vector_end,
+      vci_10_byte_valid   => vci_10_byte_valid,
+      vci_10_dest_addr_in => vci_10_dest_addr_in,
+
+      vci_10_data_a => vci_10_data_a,
+      vci_10_flag_a => vci_10_flag_a,
+      vci_10_data_b => vci_10_data_b,
+      vci_10_flag_b => vci_10_flag_b,
+
+      vci_10_data_out      => vci_10_data_out,
+      vci_10_flag_out      => vci_10_flag_out,
+      vci_10_byteenable    => vci_10_byteenable,
+      vci_10_dest_addr_out => vci_10_dest_addr_out,
+
+      vci_11_clk   => vci_11_clk,
+      vci_11_reset => vci_11_reset,
+
+      vci_11_valid  => vci_11_valid,
+      vci_11_signed => vci_11_signed,
+      vci_11_opsize => vci_11_opsize,
+
+      vci_11_vector_start => vci_11_vector_start,
+      vci_11_vector_end   => vci_11_vector_end,
+      vci_11_byte_valid   => vci_11_byte_valid,
+      vci_11_dest_addr_in => vci_11_dest_addr_in,
+
+      vci_11_data_a => vci_11_data_a,
+      vci_11_flag_a => vci_11_flag_a,
+      vci_11_data_b => vci_11_data_b,
+      vci_11_flag_b => vci_11_flag_b,
+
+      vci_11_data_out      => vci_11_data_out,
+      vci_11_flag_out      => vci_11_flag_out,
+      vci_11_byteenable    => vci_11_byteenable,
+      vci_11_dest_addr_out => vci_11_dest_addr_out,
+
+      vci_12_clk   => vci_12_clk,
+      vci_12_reset => vci_12_reset,
+
+      vci_12_valid  => vci_12_valid,
+      vci_12_signed => vci_12_signed,
+      vci_12_opsize => vci_12_opsize,
+
+      vci_12_vector_start => vci_12_vector_start,
+      vci_12_vector_end   => vci_12_vector_end,
+      vci_12_byte_valid   => vci_12_byte_valid,
+      vci_12_dest_addr_in => vci_12_dest_addr_in,
+
+      vci_12_data_a => vci_12_data_a,
+      vci_12_flag_a => vci_12_flag_a,
+      vci_12_data_b => vci_12_data_b,
+      vci_12_flag_b => vci_12_flag_b,
+
+      vci_12_data_out      => vci_12_data_out,
+      vci_12_flag_out      => vci_12_flag_out,
+      vci_12_byteenable    => vci_12_byteenable,
+      vci_12_dest_addr_out => vci_12_dest_addr_out,
+
+      vci_13_clk   => vci_13_clk,
+      vci_13_reset => vci_13_reset,
+
+      vci_13_valid  => vci_13_valid,
+      vci_13_signed => vci_13_signed,
+      vci_13_opsize => vci_13_opsize,
+
+      vci_13_vector_start => vci_13_vector_start,
+      vci_13_vector_end   => vci_13_vector_end,
+      vci_13_byte_valid   => vci_13_byte_valid,
+      vci_13_dest_addr_in => vci_13_dest_addr_in,
+
+      vci_13_data_a => vci_13_data_a,
+      vci_13_flag_a => vci_13_flag_a,
+      vci_13_data_b => vci_13_data_b,
+      vci_13_flag_b => vci_13_flag_b,
+
+      vci_13_data_out      => vci_13_data_out,
+      vci_13_flag_out      => vci_13_flag_out,
+      vci_13_byteenable    => vci_13_byteenable,
+      vci_13_dest_addr_out => vci_13_dest_addr_out,
+
+      vci_14_clk   => vci_14_clk,
+      vci_14_reset => vci_14_reset,
+
+      vci_14_valid  => vci_14_valid,
+      vci_14_signed => vci_14_signed,
+      vci_14_opsize => vci_14_opsize,
+
+      vci_14_vector_start => vci_14_vector_start,
+      vci_14_vector_end   => vci_14_vector_end,
+      vci_14_byte_valid   => vci_14_byte_valid,
+      vci_14_dest_addr_in => vci_14_dest_addr_in,
+
+      vci_14_data_a => vci_14_data_a,
+      vci_14_flag_a => vci_14_flag_a,
+      vci_14_data_b => vci_14_data_b,
+      vci_14_flag_b => vci_14_flag_b,
+
+      vci_14_data_out      => vci_14_data_out,
+      vci_14_flag_out      => vci_14_flag_out,
+      vci_14_byteenable    => vci_14_byteenable,
+      vci_14_dest_addr_out => vci_14_dest_addr_out,
+
+      vci_15_clk   => vci_15_clk,
+      vci_15_reset => vci_15_reset,
+
+      vci_15_valid  => vci_15_valid,
+      vci_15_signed => vci_15_signed,
+      vci_15_opsize => vci_15_opsize,
+
+      vci_15_vector_start => vci_15_vector_start,
+      vci_15_vector_end   => vci_15_vector_end,
+      vci_15_byte_valid   => vci_15_byte_valid,
+      vci_15_dest_addr_in => vci_15_dest_addr_in,
+
+      vci_15_data_a => vci_15_data_a,
+      vci_15_flag_a => vci_15_flag_a,
+      vci_15_data_b => vci_15_data_b,
+      vci_15_flag_b => vci_15_flag_b,
+
+      vci_15_data_out      => vci_15_data_out,
+      vci_15_flag_out      => vci_15_flag_out,
+      vci_15_byteenable    => vci_15_byteenable,
+      vci_15_dest_addr_out => vci_15_dest_addr_out
+      );
+
+end architecture rtl;

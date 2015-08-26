@@ -1,0 +1,377 @@
+\documentclass[11pt]{article}
+\usepackage{fullpage}
+\usepackage{amsmath}
+\title{Matrix Vector Signal Processing}
+\author{Joe Edwards \\ VectorBlox 2012}
+\date{}
+\begin{document}
+\maketitle
+
+\section*{Rationale}
+Using matrix-vector notation allows for easy manipulation of various linear transforms, used extensively in signal processing. Formulas can easily be made to take advantage of vector processing or use stride lengths that take advantage of a given architecture.
+
+\section*{Current Requirements}
+Input data and secondary buffer allocated in scratchpad, input will be overwritten\\
+Output either in secondary buffer \emph{(returns 0)}, or in input \emph{(returns 1)}\\ 
+Input and output data in column major ordering\\
+Input data tiled in columns for further parallelism ( TILE == no. of parallel transforms )\\
+\emph{*** may need to check for overflow --- not implemented ***}
+
+\section*{Current Directory Structure}
+Kernels, twiddle macros and python code to generate transform in $mvsp$\_$src$ dir\\
+Current function ran in main $mvsp$ directory, renamed $mvsp$\_$macro$, called within $mvsp$\_$test$\\ 
+Assumes board is programmed and connected on "USB-Blaster [2-1.1]" and python script called within NIOS shell\\
+Generated function and results stored in $mvsp$\_$dst$ dir\\
+\emph{*** all directories and targets can be changed in python script $genMVSP.py$ ***}
+
+\section*{Basic Matrix-Vector Notation}
+$(A\otimes I_{m})\cdot X$
+--- Applies $A$ at stride $m$ with vector length $m$ (vector parallelism)\\
+$(I_{k}\otimes B)\cdot X$ 
+--- Repeats $B$ on $k$ consecutive sections of data (data parallelism)\\
+$(I_{k}\otimes A\otimes I_{m})\cdot X$ 
+--- Repeats $A$ at stride $m$ with vector length $m$ on $k$ consecutive sections of data\\
+\newline
+$D\cdot X$ 
+--- Diagonal matrix. Multiplies a given entry $D$ across a tiled row of data\\
+$T\cdot X$ 
+--- Twiddle factor maxtrix. Special case of diagonal matrix\\
+\newline
+$P\cdot X$ 
+--- Permutation matrix. Manipulates ordering of input data\\
+$L\cdot X$ 
+--- Load-at-stride matrix. Special case of permutation matrix. Loads data at a given stride\\
+$R\cdot X$ 
+--- Digit-reversal matrix. Special case of permutation matrix. Loads data digit-reversed
+
+\newpage
+\section*{Understanding Vector and Data Parallelism}
+\begin{displaymath}
+	A,B = 
+	\begin{bmatrix}
+	a0 & a1 \\
+	b0 & b1 \\
+	\end{bmatrix}
+	, I =  
+	\begin{bmatrix}
+	1 &   \\
+	 & 1 \\
+	\end{bmatrix}
+	, X =  
+	\begin{bmatrix}
+	x0 \\
+	x1 \\
+	x2 \\
+	x3 \\
+	\end{bmatrix}
+\end{displaymath}
+\subsection*{Vector Parallelism --- $(A\otimes I_{m})\cdot X$ }
+\begin{displaymath}
+	(A\otimes I)\cdot X = 
+	\begin{bmatrix}
+	a0 &  & a1 & \\
+	 & a0 &  & a1 \\
+	b0 &  & b1 &  \\
+	 & b0 &  & b1 \\
+	\end{bmatrix}
+	\cdot
+	\begin{bmatrix}
+	x0 \\
+	x1 \\
+	x2 \\
+	x3 \\
+	\end{bmatrix}
+	=
+	\begin{bmatrix}
+	x0a0 & + x2a1 \\
+	x1a0 & + x3a1 \\
+	x0b0 & + x2b1 \\
+	x1b0 & + x3b1 \\
+	\end{bmatrix}
+\end{displaymath}\\
+\subsection*{Implementation}
+\begin{center}
+\fbox{%
+	\parbox{240\unitlength}{%
+		vbx\_set\_vl( TILE * m );\\
+		vbx(V\ldots \\
+		\vdots \\ 
+		vbx(V\ldots} 
+	}\\
+\end{center}
+\subsection*{Data Parallelism --- $(I_{k}\otimes B)\cdot X$ }
+\begin{displaymath}
+	(I\otimes B)\cdot X = 
+	\begin{bmatrix}
+	a0 & a1 &  & \\
+	b0 & b1 &  &  \\
+	 &  & a0 & a1 \\
+	 &  & b0 & b1 \\
+	\end{bmatrix}
+	\cdot
+	\begin{bmatrix}
+	x0 \\
+	x1 \\
+	x2 \\
+	x3 \\
+	\end{bmatrix}
+	=
+	\begin{bmatrix}
+	x0a0 & + x1a1 \\
+	x0b0 & + x1b1 \\
+	x2a0 & + x3a1 \\
+	x2b0 & + x3b1 \\
+	\end{bmatrix}
+\end{displaymath}\\
+\subsection*{Implementation}
+\begin{center}
+\fbox{%
+	\parbox{240\unitlength}{%
+		vbx\_set\_2D( k , TILE*n/k*sizeof(short) , \ldots );\\
+		vbx\_set\_vl( TILE );\\
+		vbx\_2D(V\ldots \\
+		\vdots \\ 
+		vbx\_2D(V\ldots} 
+	}\\
+\end{center}
+
+
+\newpage
+\section*{Code Generation}
+***$genMVSP.py$ must be called from within NIOS shell***
+\subsection*{Linear Function}
+\noindent\makebox[\linewidth]{\rule{\textwidth}{1pt}} 
+\newline Example: python genMVSP.py fft 8 8 sd all\\
+\emph{runs all implemented versions of $FFT_8$ at all available radixes --- shows debugging and input/output}\\
+\noindent\makebox[\linewidth]{\rule{\textwidth}{1pt}} 
+\newline Arguments:
+\begin{itemize}
+\item Type --- "fft" (to be added "fft2" "rfft" "ifft" "dct" "dct2")
+\item N
+\item TILE
+\item flags --- 's' $show result$ 'd' $debug, shows input/output$
+\item Name --- "all" "cooleyDIT" "cooleyDIF" "korn" "pease" "stockham"
+\end{itemize}
+\subsection*{Test Series of Matrix-Vector Ops}
+\noindent\makebox[\linewidth]{\rule{\textwidth}{1pt}} 
+\newline Example: python genMVSP.py test 8 8 sd FI 4 2 T 8 2 IF 4 2 L 8 4\\
+\emph{runs $FFT_8 = (FFT_2\otimes I_4)T^8_2(I_4\otimes FFT_2)L^8_4$ --- shows debugging and input/output}\\
+\noindent\makebox[\linewidth]{\rule{\textwidth}{1pt}} 
+\newline Arguments:
+\begin{itemize}
+\item Type --- "test" "fft" (to be added "fft2" "rfft" "ifft" "dct" "dct2")
+\item N
+\item TILE
+\item flags --- 's' $show result$ 'd' $debug, shows input/output$
+\end{itemize}
+Remaining arguments (as many as needed):
+\begin{itemize}
+\item F x --- $FFT_{x}$ kernel (available for N = {2,4,8}
+\item FR x --- $RFFT_{x}$ kernel (available for N = {2,4,8}
+\item FI x y --- $FFT_{x}\otimes I_{y}$ 
+\item IF x y --- $I_{x}\otimes FFT_{y}$ 
+\item IFI x y z --- $I_{s}\otimes FFT_{y}\otimes I_{z}$ 
+\item T x y --- $T^{x}_{y}$ diagonal twiddle factor matrix
+\item L x y --- $L^{x}_{y}$ load data at stride $y$
+\item TI x y z --- $T^{x}_{y}\otimes I_{z}$ 
+\item IT x y z --- $I_{x} \otimes T^{y}_{z}$ 
+\item LI x y z --- $L^{x}_{y}\otimes I_{z}$ 
+\item IL x y z --- $I_{x} \otimes L^{y}_{z}$ 
+\end{itemize}
+
+\newpage
+\section*{Full Example}
+\subsection*{Target Linear Transform}
+4-pt Cooley DIT (radix 2)
+\subsection*{Code Generation}
+\emph{gnerated inside source directory, in NIOS shell by running: \\"python genMVSP.py test 4 4 sd FI 2 2 T 4 2 IF 2 2 L 4 2" }
+\subsection*{Matrix-Vector Form}
+$DFT_4 = (DFT_2\otimes I_2)\cdot T^4_2\cdot (I_2\otimes DFT_2)\cdot L^4_2$\\
+\begin{displaymath}
+	DFT_4 = 
+	\begin{bmatrix}
+	1 & 1 & 1 & 1 \\
+	1 & -i & -1 & i \\
+	1 & -1 & 1 & -1 \\
+	1 & i & -1 & -i \\
+	\end{bmatrix}
+	=  
+	\begin{bmatrix}
+	1 &  & 1 & \\
+	 & 1 &  & 1 \\
+	1 &  & -1 &  \\
+	 & 1 &  & -1 \\
+	\end{bmatrix}
+	\cdot
+	\begin{bmatrix}
+	1 &  &  & \\
+	 & 1 &  & \\
+	 &  & 1 &  \\
+	 &  &  & -i \\
+	\end{bmatrix}
+	\cdot
+	\begin{bmatrix}
+	1 & 1 &  & \\
+	1 & -1 &  &  \\
+	 &  & 1 & 1 \\
+	 &  & 1 & -1 \\
+	\end{bmatrix}
+	\cdot
+	\begin{bmatrix}
+	1 &  &  & \\
+	 &  & 1 & \\
+	 & 1 &  &  \\
+	 &  &  & 1 \\
+	\end{bmatrix}
+\end{displaymath}
+\subsection*{Generated Code}
+Main Routine 
+\noindent\makebox[\linewidth]{\rule{\textwidth}{1pt}} \\
+\newline
+int mxp\_4\_F2xI2\_T4\_2\_I2xF2\_L4\_2(vbx\_half\_t* yr, vbx\_half\_t* yi, vbx\_half\_t* xr, vbx\_half\_t* xi)\\
+\{\\
+	\indent	L4\_2( yr, yi, xr, xi );\\
+	\indent	IxF2( 2, xr, xi, yr, yi );\\
+	\indent	T4\_2( xr, xi, yr ); \emph{//yr is used as temp, twiddles done in place to save moves}\\
+	\indent	F2xI( 2, yr, yi, xr, xi );\\ 
+	\indent return 0; \emph{//returns '0' if output in y, '1' if output in x}\\
+\}\\
+\newline
+Vectorized subroutine \emph{(F2xI2)}
+\noindent\makebox[\linewidth]{\rule{\textwidth}{1pt}} \\
+\newline
+static inline void F2xI(short m, vbx\_half\_t* yr, vbx\_half\_t* yi, vbx\_half\_t* xr, vbx\_half\_t* xi )\\
+\{\\
+	\indent vbx\_set\_vl(TILE*m);\\
+	\indent vbx(VVH, VADD, (yr),        (xr),        (xr)+TILE*m);\\
+	\indent vbx(VVH, VADD, (yi),        (xi),        (xi)+TILE*m);\\
+	\indent vbx(VVH, VSUB, (yr)+TILE*m,   (xr),        (xr)+TILE*m);\\
+	\indent vbx(VVH, VSUB, (yi)+TILE*m,   (xi),        (xi)+TILE*m);\\
+\}\\
+\newline
+Sequential subroutine \emph{(I2xF2)}
+\noindent\makebox[\linewidth]{\rule{\textwidth}{1pt}} \\
+\newline
+static inline void IxF2(short n, vbx\_half\_t* yr, vbx\_half\_t* yi, vbx\_half\_t* xr, vbx\_half\_t* xi )\\
+\{\\
+	\indent vbx\_set\_2D(n, 2*TILE*sizeof(short), 2*TILE*sizeof(short), 2*TILE*sizeof(short));\\
+	\indent vbx\_set\_vl(TILE);\\
+	\indent vbx\_2D(VVH, VADD, (yr),        (xr),        (xr)+TILE);\\
+	\indent vbx\_2D(VVH, VADD, (yi),        (xi),        (xi)+TILE);\\
+	\indent vbx\_2D(VVH, VSUB, (yr)+TILE,   (xr),        (xr)+TILE);\\
+	\indent vbx\_2D(VVH, VSUB, (yi)+TILE,   (xi),        (xi)+TILE);\\
+\}\\
+\newline
+Diagonal Twiddle Factor subroutine \emph{(T4\_2)}
+\noindent\makebox[\linewidth]{\rule{\textwidth}{1pt}} \\
+\newline
+static inline void T4\_2(vbx\_half\_t* yr, vbx\_half\_t* yi, vbx\_half\_t* tt )\\
+\{\\
+	\indent vbx\_set\_vl(TILE);\\
+	\indent T1( 3,    0, -32768, 0,1); \emph{// One of three twiddle macros, where factor is 1, .707, or N}\\
+\}\\
+\newline
+Load subroutine \emph{(L4\_2)}
+\noindent\makebox[\linewidth]{\rule{\textwidth}{1pt}} \\
+\newline
+static inline void L4\_2(vbx\_half\_t* yr, vbx\_half\_t* yi, vbx\_half\_t* xr, vbx\_half\_t* xi)\\
+\{\\
+	\indent vbx\_set\_2D(2, TILE*sizeof(short), 2*TILE*sizeof(short), 0);\\
+	\indent vbx\_set\_vl(TILE);\\
+	\indent vbx\_2D(VVH, VMOV, yr+0*TILE*2, xr+TILE*0, 0);\\
+	\indent vbx\_2D(VVH, VMOV, yi+0*TILE*2, xi+TILE*0, 0);\\
+	\indent vbx\_2D(VVH, VMOV, yr+1*TILE*2, xr+TILE*1, 0);\\
+	\indent vbx\_2D(VVH, VMOV, yi+1*TILE*2, xi+TILE*1, 0);\\
+\}\\
+
+\newpage
+\section*{Key Identities for Manipulating Linear Tranforms}
+$A\otimes (B\otimes C) = (A\otimes B)\otimes C$\\
+$A\otimes B = (A\otimes I_{m})(I_{k}\otimes B) = (I_{k}\otimes B)(A\otimes I_{m})$\\
+$(AB\otimes CD) = (A\otimes C)(B\otimes D)$\\
+\newline
+$I_{k}\otimes I_{m} = I_{km}$\\
+$A\otimes B = L^{rs}_{s}(B\otimes A)L^{rs}_{r}$\\
+\newline
+$(L^{rs}_{s})^{-1} = L^{rs}_{r}$\\
+$L^{rst}_{r}\otimes L^{rst}_{s} = L^{rst}_{rs}$\\
+\newline
+$R_{2} = I_{2}$\\
+$R_{4} = L_{2}^{4}$\\
+$R_{2^{n}} = \prod\limits^{n}_{i=2}(I_{2^{n-i}}\otimes L^{2^{i}}_{2})$\\
+
+\section*{Identities for 2D}
+$(F_{N_{1}}\otimes F_{N_{0}})\cdot X = (F_{N_{1}}\otimes I_{N_{0}})(I_{N_{1}}\otimes F_{N_{0}})\cdot X$\\ 
+$(F_{N_{1}}\otimes F_{N_{0}})\cdot X = (F_{N_{1}}\otimes I_{N_{0}})L^{N_{1}N_{0}}_{N_{1}}(F_{N_{0}}\otimes I_{N_{1}})L^{N_{1}N_{0}}_{N_{0}}\cdot X$\\ 
+$(F_{N_{1}}\otimes F_{N_{0}})\cdot X = L^{N_{1}N_{0}}_{N_{1}}(I_{N_{0}}\otimes F_{N_{1}})L^{N_{1}N_{0}}_{N_{0}}(I_{N_{1}}\otimes F_{N_{0}})\cdot X$\\ 
+
+\section*{Identities for Loop Merging}
+\emph{see spl-thesis.pdf pg42 in mvsp\_docs}
+
+
+\newpage
+\section*{1D FFT Variations}
+\subsection*{Recursive}
+
+Cooley DIT
+\begin{quote}$DFT_{km} = (DFT_{k}\otimes I_{m})T^{n}_m(I_{k}\otimes DFT_{m})L^{n}_k$\end{quote}
+
+Cooley DIF
+\begin{quote}$DFT_{km} = L^{n}_m(I_{k}\otimes DFT_{m})T^{n}_m(DFT_{k}\otimes I_{m})$\end{quote}
+
+Four-Step (Vectorized)
+\begin{quote}$DFT_{km} = (DFT_{k}\otimes I_{m})T^{n}_mL^{n}_k(DFT_{m}\otimes I_{k})$\end{quote}
+
+Six-Step (Distributed)
+\begin{quote}$DFT_{km} = L^{n}_k(I_{m}\otimes DFT_{k})L^{n}_mT^{n}_m(I_{k}\otimes DFT_{m})L^{n}_k$\end{quote}
+
+\subsection*{Iterative}
+
+Cooley DIT
+\begin{quote}$DFT_{r^{k}} = \left(\prod\limits^{k-1}_{i=0}(I_{r^{i}}\otimes DFT_r\otimes I_{r^{k-i-1}})D^{r^{k}}_{i}\right)R^{r^{k}}_{r}$\\
+	$where$ $D^{r^{k}}_{i} = (I_{r^{i}}\otimes T^{r^{k-i}}_{r^{k-i-1}})$\end{quote}
+
+Cooley DIF
+\begin{quote}$DFT_{r^{k}} = R^{r^{k}}_{r}\prod\limits^{k-1}_{i=0}D^{r^{k}}_{i}(I_{r^{k-i-1}}\otimes DFT_r\otimes I_{r^{i}})$\\
+	$where$ $D^{r^{k}}_{i} = (I_{r^{k-i-1}}\otimes T_{r^{i}}^{r^{i+1}})$\end{quote}
+
+Stockham
+\begin{quote}$DFT_{r^{k}} = \prod\limits^{k-1}_{i=0}(DFT_r\otimes I_{r^{k-1}})D^{r^{k}}_{i}(L^{r^{k-i}}_{r}\otimes I_{r^{i}})$\\
+	$where$ $D^{r^{k}}_{i} = (T^{r^{k-i}}_{r^{k-i-1}}\otimes I_{r^{i}})$\end{quote}
+
+Korn Lambiotte
+\begin{quote}$DFT_{r^{k}} = \left(\prod\limits^{k-1}_{i=0}(DFT_r\otimes I_{r^{k-1}})D^{r^{k}}_{i}L^{r^{k}}_{r}\right)R^{r^{k}}_{r}$\\
+	$where$ $D^{r^{k}}_{i} = (T^{r^{k-i}}_{r^{k-i-1}}\otimes I_{r^{i}})$\end{quote}
+
+Pease
+\begin{quote}$DFT_{r^{k}} = \left(\prod\limits^{k-1}_{i=0}L^{r^{k}}_{r}(I_{r^{k-1}}\otimes DFT_r)D^{r^{k}}_{i}\right)R^{r^{k}}_{r}$\\
+	$where$ $D^{r^{k}}_{i} = (L^{r^{k}}_{r^{k-1}}(T^{r^{k-i}}_{r^{k-i-1}}\otimes I_{r^{i}})L^{r^{k}}_{r})$\end{quote}
+
+\section*{Other Currently Supported Linear Tranforms}
+\emph{none}\\
+%2D Cooley FFT
+%2D Stockham FFT
+%2D Korn FFT
+%DCTii$_2$
+%DCTii$_4$
+%DCTii$_8$
+%2D DCTii$_2$
+%2D DCTii$_4$
+%2D DCTii$_8$
+%$DCT2_2 = diag( 1 , \frac{1}{\sqrt{2}}) F_2$
+%$DCT2_{2m} = L^{mn}_{m}(DCT2_{m}\oplus DCT4_{m})B_{2m}$
+%$B_{2m} = (DFT_{2}\otimes I_{m})(I_{m}\oplus J_{m})$
+
+\newpage
+\section*{Future Work}
+IFFT \emph{(estimated 4 hrs)}\\
+RFFT \emph{(estimated 4 hrs)}\\
+2D FFT \emph{(estimated 1 day)}\\
+DCT$_2$ {2,4,8} \emph{(estimated 1 day)}\\
+DCT$_2$ N \emph{(estimated 2 days}\\
+2D DCT$_2$ \emph{(estimated 1 day)}\\
+DST$_2$ {2,4,8} \emph{(estimated 1 day)}\\
+DST$_2$ N \emph{(estimated 2 days)}\\
+FIR \emph{(estimated 2 days)}\\
+\end{document}
+

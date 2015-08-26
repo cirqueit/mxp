@@ -1,0 +1,18 @@
+###########################################################################
+#
+# Copyright (C) 2012-2015 VectorBlox Computing, Inc.
+#
+###########################################################################
+
+# lib proc_common_v3_00_a  all
+lib vci_particle_full_v1_00_a util_pkg.vhd vhdl
+lib vci_particle_full_v1_00_a component_pkg.vhd vhdl
+# lib vci_particle_full_v1_00_a fwft_fifo_reg.vhd vhdl
+lib vci_particle_full_v1_00_a adder_tree.vhd vhdl
+lib vci_particle_full_v1_00_a fxp_mul.vhd vhdl
+lib vci_particle_full_v1_00_a divider_xil.vhd vhdl
+lib vci_particle_full_v1_00_a fxp_div.vhd vhdl
+lib vci_particle_full_v1_00_a sqrt_xil.vhd vhdl
+lib vci_particle_full_v1_00_a distance_calc.vhd vhdl
+lib vci_particle_full_v1_00_a full_particle.vhd vhdl
+lib vci_particle_full_v1_00_a vci_particle_full.vhd vhdl

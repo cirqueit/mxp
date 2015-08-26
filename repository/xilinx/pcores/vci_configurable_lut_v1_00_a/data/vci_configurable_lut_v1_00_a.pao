@@ -1,0 +1,11 @@
+###########################################################################
+#
+# Copyright (C) 2012-2015 VectorBlox Computing, Inc.
+#
+###########################################################################
+
+# lib proc_common_v3_00_a  all
+lib vci_configurable_lut_v1_00_a vci_configurable_lut_util_pkg.vhd vhdl
+lib vci_configurable_lut_v1_00_a quad_read_ram_behav.vhd vhdl
+lib vci_configurable_lut_v1_00_a dual_read_ram_behav.vhd vhdl
+lib vci_configurable_lut_v1_00_a vci_configurable_lut.vhd vhdl

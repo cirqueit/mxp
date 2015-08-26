@@ -1,0 +1,338 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spirit:abstractionDefinition xmlns:xilinx="http://www.xilinx.com" xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <spirit:vendor>vectorblox.com</spirit:vendor>
+  <spirit:library>interface</spirit:library>
+  <spirit:name>vci_rtl</spirit:name>
+  <spirit:version>1.1</spirit:version>
+  <spirit:busType spirit:vendor="vectorblox.com" spirit:library="interface" spirit:name="vci" spirit:version="1.1"/>
+  <spirit:ports>
+
+    <spirit:port>
+      <spirit:logicalName>VCI_CLK</spirit:logicalName>
+      <spirit:description>VCI_CLK</spirit:description>
+      <spirit:wire>
+        <spirit:qualifier>
+          <spirit:isClock>true</spirit:isClock>
+        </spirit:qualifier>
+        <spirit:onMaster>
+          <spirit:presence>required</spirit:presence>
+          <spirit:width>1</spirit:width>
+           <spirit:direction>out</spirit:direction>
+       </spirit:onMaster>
+        <spirit:onSlave>
+          <spirit:presence>required</spirit:presence>
+          <spirit:width>1</spirit:width>
+          <spirit:direction>in</spirit:direction>
+        </spirit:onSlave>
+      </spirit:wire>
+    </spirit:port>
+
+    <spirit:port>
+      <spirit:logicalName>VCI_RESET</spirit:logicalName>
+      <spirit:description>VCI_RESET</spirit:description>
+      <spirit:wire>
+        <spirit:qualifier>
+          <spirit:isReset>true</spirit:isReset>
+        </spirit:qualifier>
+        <spirit:onMaster>
+          <spirit:presence>required</spirit:presence>
+          <spirit:width>1</spirit:width>
+           <spirit:direction>out</spirit:direction>
+        </spirit:onMaster>
+        <spirit:onSlave>
+          <spirit:presence>required</spirit:presence>
+          <spirit:width>1</spirit:width>
+          <spirit:direction>in</spirit:direction>
+        </spirit:onSlave>
+      </spirit:wire>
+    </spirit:port>
+
+    <spirit:port>
+      <spirit:logicalName>VCI_VALID</spirit:logicalName>
+      <spirit:description>VCI_VALID</spirit:description>
+      <spirit:wire>
+        <spirit:onMaster>
+          <spirit:presence>required</spirit:presence>
+<!--          <spirit:width>1</spirit:width> -->
+           <spirit:direction>out</spirit:direction>
+       </spirit:onMaster>
+        <spirit:onSlave>
+          <spirit:presence>required</spirit:presence>
+<!--          <spirit:width>1</spirit:width> -->
+          <spirit:direction>in</spirit:direction>
+        </spirit:onSlave>
+      </spirit:wire>
+    </spirit:port>
+
+    <spirit:port>
+      <spirit:logicalName>VCI_SELECT</spirit:logicalName>
+      <spirit:description>VCI_SELECT</spirit:description>
+      <spirit:wire>
+        <spirit:onMaster>
+          <spirit:presence>required</spirit:presence>
+          <spirit:width>2</spirit:width>
+           <spirit:direction>out</spirit:direction>
+       </spirit:onMaster>
+        <spirit:onSlave>
+          <spirit:presence>required</spirit:presence>
+          <spirit:width>2</spirit:width>
+          <spirit:direction>in</spirit:direction>
+        </spirit:onSlave>
+      </spirit:wire>
+    </spirit:port>
+
+    <spirit:port>
+      <spirit:logicalName>VCI_SIGNED</spirit:logicalName>
+      <spirit:description>VCI_SIGNED</spirit:description>
+      <spirit:wire>
+        <spirit:onMaster>
+          <spirit:presence>required</spirit:presence>
+          <spirit:width>1</spirit:width>
+           <spirit:direction>out</spirit:direction>
+       </spirit:onMaster>
+        <spirit:onSlave>
+          <spirit:presence>required</spirit:presence>
+          <spirit:width>1</spirit:width>
+          <spirit:direction>in</spirit:direction>
+        </spirit:onSlave>
+      </spirit:wire>
+    </spirit:port>
+
+    <spirit:port>
+      <spirit:logicalName>VCI_OPSIZE</spirit:logicalName>
+      <spirit:description>VCI_OPSIZE</spirit:description>
+      <spirit:wire>
+        <spirit:onMaster>
+          <spirit:presence>required</spirit:presence>
+          <spirit:width>2</spirit:width>
+           <spirit:direction>out</spirit:direction>
+       </spirit:onMaster>
+        <spirit:onSlave>
+          <spirit:presence>required</spirit:presence>
+          <spirit:width>2</spirit:width>
+          <spirit:direction>in</spirit:direction>
+        </spirit:onSlave>
+      </spirit:wire>
+    </spirit:port>
+
+    <spirit:port>
+      <spirit:logicalName>VCI_VECTOR_START</spirit:logicalName>
+      <spirit:description>VCI_VECTOR_START</spirit:description>
+      <spirit:wire>
+        <spirit:onMaster>
+          <spirit:presence>required</spirit:presence>
+          <spirit:width>1</spirit:width>
+           <spirit:direction>out</spirit:direction>
+       </spirit:onMaster>
+        <spirit:onSlave>
+          <spirit:presence>required</spirit:presence>
+          <spirit:width>1</spirit:width>
+          <spirit:direction>in</spirit:direction>
+        </spirit:onSlave>
+      </spirit:wire>
+    </spirit:port>
+
+    <spirit:port>
+      <spirit:logicalName>VCI_VECTOR_END</spirit:logicalName>
+      <spirit:description>VCI_VECTOR_END</spirit:description>
+      <spirit:wire>
+        <spirit:onMaster>
+          <spirit:presence>required</spirit:presence>
+          <spirit:width>1</spirit:width>
+           <spirit:direction>out</spirit:direction>
+       </spirit:onMaster>
+        <spirit:onSlave>
+          <spirit:presence>required</spirit:presence>
+          <spirit:width>1</spirit:width>
+          <spirit:direction>in</spirit:direction>
+        </spirit:onSlave>
+      </spirit:wire>
+    </spirit:port>
+
+    <spirit:port>
+      <spirit:logicalName>VCI_BYTE_VALID</spirit:logicalName>
+      <spirit:description>VCI_BYTE_VALID</spirit:description>
+      <spirit:wire>
+        <spirit:onMaster>
+          <spirit:presence>required</spirit:presence>
+<!--           <spirit:width>4</spirit:width> -->
+           <spirit:direction>out</spirit:direction>
+       </spirit:onMaster>
+        <spirit:onSlave>
+          <spirit:presence>required</spirit:presence>
+<!--          <spirit:width>4</spirit:width> -->
+          <spirit:direction>in</spirit:direction>
+        </spirit:onSlave>
+      </spirit:wire>
+    </spirit:port>
+
+    <spirit:port>
+      <spirit:logicalName>VCI_DATA_A</spirit:logicalName>
+      <spirit:description>VCI_DATA_A</spirit:description>
+      <spirit:wire>
+        <spirit:qualifier>
+          <spirit:isData>true</spirit:isData>
+        </spirit:qualifier>
+        <spirit:onMaster>
+          <spirit:presence>required</spirit:presence>
+<!--          <spirit:width>32</spirit:width> -->
+           <spirit:direction>out</spirit:direction>
+       </spirit:onMaster>
+        <spirit:onSlave>
+          <spirit:presence>required</spirit:presence>
+<!--          <spirit:width>32</spirit:width> -->
+          <spirit:direction>in</spirit:direction>
+        </spirit:onSlave>
+      </spirit:wire>
+    </spirit:port>
+
+    <spirit:port>
+      <spirit:logicalName>VCI_FLAG_A</spirit:logicalName>
+      <spirit:description>VCI_FLAG_A</spirit:description>
+      <spirit:wire>
+        <spirit:onMaster>
+          <spirit:presence>required</spirit:presence>
+<!--          <spirit:width>4</spirit:width> -->
+           <spirit:direction>out</spirit:direction>
+       </spirit:onMaster>
+        <spirit:onSlave>
+          <spirit:presence>required</spirit:presence>
+<!--           <spirit:width>4</spirit:width> -->
+          <spirit:direction>in</spirit:direction>
+        </spirit:onSlave>
+      </spirit:wire>
+    </spirit:port>
+
+    <spirit:port>
+      <spirit:logicalName>VCI_DATA_B</spirit:logicalName>
+      <spirit:description>VCI_DATA_B</spirit:description>
+      <spirit:wire>
+        <spirit:qualifier>
+          <spirit:isData>true</spirit:isData>
+        </spirit:qualifier>
+        <spirit:onMaster>
+          <spirit:presence>required</spirit:presence>
+<!--           <spirit:width>32</spirit:width> -->
+           <spirit:direction>out</spirit:direction>
+       </spirit:onMaster>
+        <spirit:onSlave>
+          <spirit:presence>required</spirit:presence>
+<!--           <spirit:width>32</spirit:width> -->
+          <spirit:direction>in</spirit:direction>
+        </spirit:onSlave>
+      </spirit:wire>
+    </spirit:port>
+
+    <spirit:port>
+      <spirit:logicalName>VCI_FLAG_B</spirit:logicalName>
+      <spirit:description>VCI_FLAG_B</spirit:description>
+      <spirit:wire>
+        <spirit:onMaster>
+          <spirit:presence>required</spirit:presence>
+<!--           <spirit:width>4</spirit:width> -->
+           <spirit:direction>out</spirit:direction>
+       </spirit:onMaster>
+        <spirit:onSlave>
+          <spirit:presence>required</spirit:presence>
+<!--           <spirit:width>4</spirit:width> -->
+          <spirit:direction>in</spirit:direction>
+        </spirit:onSlave>
+      </spirit:wire>
+    </spirit:port>
+
+    <spirit:port>
+      <spirit:logicalName>VCI_DATA_OUT</spirit:logicalName>
+      <spirit:description>VCI_DATA_OUT</spirit:description>
+      <spirit:wire>
+        <spirit:qualifier>
+          <spirit:isData>true</spirit:isData>
+        </spirit:qualifier>
+        <spirit:onMaster>
+          <spirit:presence>required</spirit:presence>
+<!--          <spirit:width>32</spirit:width> -->
+           <spirit:direction>in</spirit:direction>
+       </spirit:onMaster>
+        <spirit:onSlave>
+          <spirit:presence>required</spirit:presence>
+<!--           <spirit:width>32</spirit:width> -->
+          <spirit:direction>out</spirit:direction>
+        </spirit:onSlave>
+      </spirit:wire>
+    </spirit:port>
+
+    <spirit:port>
+      <spirit:logicalName>VCI_FLAG_OUT</spirit:logicalName>
+      <spirit:description>VCI_FLAG_OUT</spirit:description>
+      <spirit:wire>
+        <spirit:onMaster>
+          <spirit:presence>required</spirit:presence>
+<!--           <spirit:width>4</spirit:width> -->
+           <spirit:direction>in</spirit:direction>
+       </spirit:onMaster>
+        <spirit:onSlave>
+          <spirit:presence>required</spirit:presence>
+<!--           <spirit:width>4</spirit:width> -->
+          <spirit:direction>out</spirit:direction>
+        </spirit:onSlave>
+      </spirit:wire>
+    </spirit:port>
+
+    <spirit:port>
+      <spirit:logicalName>VCI_BYTEENABLE</spirit:logicalName>
+      <spirit:description>VCI_BYTEENABLE</spirit:description>
+      <spirit:wire>
+        <spirit:onMaster>
+          <spirit:presence>required</spirit:presence>
+<!--           <spirit:width>4</spirit:width> -->
+           <spirit:direction>in</spirit:direction>
+       </spirit:onMaster>
+        <spirit:onSlave>
+          <spirit:presence>required</spirit:presence>
+<!--           <spirit:width>4</spirit:width> -->
+          <spirit:direction>out</spirit:direction>
+        </spirit:onSlave>
+      </spirit:wire>
+    </spirit:port>
+
+    <spirit:port>
+      <spirit:logicalName>VCI_DEST_ADDR_IN</spirit:logicalName>
+      <spirit:description>VCI_DEST_ADDR_IN</spirit:description>
+      <spirit:wire>
+        <spirit:qualifier>
+          <spirit:isAddress>true</spirit:isAddress>
+        </spirit:qualifier>
+        <spirit:onMaster>
+          <spirit:presence>optional</spirit:presence>
+          <spirit:width>32</spirit:width>
+           <spirit:direction>out</spirit:direction>
+       </spirit:onMaster>
+        <spirit:onSlave>
+          <spirit:presence>optional</spirit:presence>
+          <spirit:width>32</spirit:width>
+          <spirit:direction>in</spirit:direction>
+        </spirit:onSlave>
+      </spirit:wire>
+    </spirit:port>
+
+    <spirit:port>
+      <spirit:logicalName>VCI_DEST_ADDR_OUT</spirit:logicalName>
+      <spirit:description>VCI_DEST_ADDR_OUT</spirit:description>
+      <spirit:wire>
+        <spirit:qualifier>
+          <spirit:isAddress>true</spirit:isAddress>
+        </spirit:qualifier>
+        <spirit:onMaster>
+          <spirit:presence>optional</spirit:presence>
+          <spirit:width>32</spirit:width>
+           <spirit:direction>in</spirit:direction>
+       </spirit:onMaster>
+        <spirit:onSlave>
+          <spirit:presence>optional</spirit:presence>
+          <spirit:width>32</spirit:width>
+          <spirit:direction>out</spirit:direction>
+        </spirit:onSlave>
+      </spirit:wire>
+    </spirit:port>
+
+  </spirit:ports>
+</spirit:abstractionDefinition>

@@ -1,0 +1,30 @@
+include ../../common/xil_app_vars.mk
+include sources.mk
+
+ALT_LIBRARY_ROOT_DIR := ../../lib/vbxware
+include ../../lib/vbxware/public.mk
+ALT_LIBRARY_ROOT_DIR := ../../lib/vbxware++
+include ../../lib/vbxware++/public.mk
+ALT_LIBRARY_ROOT_DIR := ../../lib/vbxtest
+include ../../lib/vbxtest/public.mk
+ALT_LIBRARY_ROOT_DIR := ../../lib/scalar
+include ../../lib/scalar/public.mk
+ALT_LIBRARY_ROOT_DIR := ../../lib/libfixmath
+include ../../lib/libfixmath/public.mk
+
+VBXAPI_DIRECTORY:=../../../../repository/lib/vbxapi
+VBXSIM_DIRECTORY:=../../../../repository/lib/vbxsim
+
+ifeq ($(OS_TARGET),LINUX)
+ALT_LIBRARY_ROOT_DIR := $(VBXAPI_DIRECTORY)
+include $(VBXAPI_DIRECTORY)/public.mk
+endif
+
+ifeq ($(SIMULATOR),true)
+ALT_LIBRARY_ROOT_DIR := $(VBXAPI_DIRECTORY)
+include $(VBXAPI_DIRECTORY)/public.mk
+ALT_LIBRARY_ROOT_DIR := $(VBXSIM_DIRECTORY)
+include $(VBXSIM_DIRECTORY)/public.mk
+
+endif
+include ../../common/xil_app.mk

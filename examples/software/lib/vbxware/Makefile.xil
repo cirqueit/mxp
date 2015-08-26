@@ -1,0 +1,5 @@
+OUTPUT_LIB := libvbxware.a
+C_SRCS :=
+include sources.mk
+
+include ../../common/xil_lib.mk

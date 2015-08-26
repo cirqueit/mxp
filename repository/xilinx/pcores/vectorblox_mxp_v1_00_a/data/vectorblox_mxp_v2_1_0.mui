@@ -1,0 +1,1180 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<!-- Copyright (C) 2013-2015 VectorBlox Computing, Inc. -->
+
+<!DOCTYPE doc SYSTEM "../../ipdialog.dtd" [
+
+    <!ENTITY VECTOR_LANES '
+    <widget id="VECTOR_LANES">
+        <key>VECTOR_LANES</key>
+        <label>Number of Vector Lanes</label>
+        <tip>The number of vector lanes. Must be a power of 2.</tip>
+    </widget>
+    '>
+
+    <!ENTITY MEMORY_WIDTH_LANES '
+    <widget id="MEMORY_WIDTH_LANES">
+        <key>MEMORY_WIDTH_LANES</key>
+        <label>Number of Memory Lanes</label>
+        <tip>The data bus width of the AXI master interface expressed in
+        terms of 32-bit lanes. The number of memory lanes must be a power
+        of two and no larger than the number of vector lanes. </tip>
+    </widget>
+    '>
+
+    <!ENTITY BEATS_PER_BURST '
+    <widget id="BEATS_PER_BURST">
+        <key>BEATS_PER_BURST</key>
+        <label>Maximum Burst Size in Beats</label>
+        <tip>The maximum number of beats per burst issued by the
+        AXI master interface.</tip>
+    </widget>
+    '>
+
+    <!ENTITY SCRATCHPAD_KB '
+    <widget id="SCRATCHPAD_KB">
+        <key>SCRATCHPAD_KB</key>
+        <label>Scratchpad Size in KB</label>
+        <tip>The Scratchpad RAM size in kilobytes.</tip>
+    </widget>
+    '>
+
+    <!ENTITY BURSTLENGTH_BYTES '
+    <widget id="BURSTLENGTH_BYTES">
+        <key>BURSTLENGTH_BYTES</key>
+        <label>Maximum Burst Size in Bytes</label>
+        <tip>The AXI master interface&apos;s maximum burst size in bytes,
+        as determined by the number of memory lanes and the maximum number
+        of beats per burst. Note that the AXI protocol does not allow bursts
+        longer than 4096 bytes.</tip>
+    </widget>
+    '>
+
+    <!ENTITY MAX_MASKED_WAVES '
+    <widget id="MAX_MASKED_WAVES">
+        <key>MAX_MASKED_WAVES</key>
+        <label>Maximum Number of Waves for Masked Instructions</label>
+        <tip>The number of waves supported by a masked vector instruction
+        (when the element size is one byte).
+        The maximum vector length for masked instructions will be this
+        value multiplied by VECTOR_LANES*4.</tip>
+    </widget>
+    '>
+
+    <!ENTITY MASK_PARTITIONS '
+    <widget id="MASK_PARTITIONS">
+        <key>MASK_PARTITIONS</key>
+        <label>Number of Mask Partitions</label>
+        <tip>Changes the granularity of masked instructions. Currently only 1
+        (enabled) and 0 (disabled) supported.</tip>
+    </widget>
+    '>
+
+    <!ENTITY MIN_MULTIPLIER_HW '
+    <widget id="MIN_MULTIPLIER_HW">
+        <key>MIN_MULTIPLIER_HW</key>
+        <label>Multiplier Performance</label>
+        <tip>Sets the minimum multiplier size. This can be used to reduce DSP block
+        usage at the cost of performance. If set to Byte, then byte, halfword,
+    	and word multipliers are instantiated and multiplication of any element
+    	size runs at full speed. If set to Halfword, only word and
+    	halfword multipliers are instantiated; byte-width
+    	multiplication will be executed with the halfword multiplier and run at
+    	half speed. If set to Word, only word multipliers are instantiated;
+    	halfword-width multiplication will run at half speed and
+    	byte-width multiplication will run at quarter speed.</tip>
+    </widget>
+    '>
+
+    <!ENTITY MULFXP_WORD_FRACTION_BITS '
+    <widget id="MULFXP_WORD_FRACTION_BITS">
+        <key>MULFXP_WORD_FRACTION_BITS</key>
+        <label>Number of fractional bits in a word</label>
+        <tip>Specifies the number of least-significant bits that will be used to
+        represent the fractional part of a 32-bit fixed-point number.</tip>
+    </widget>
+    '>
+
+    <!ENTITY MULFXP_HALF_FRACTION_BITS '
+    <widget id="MULFXP_HALF_FRACTION_BITS ">
+        <key>MULFXP_HALF_FRACTION_BITS </key>
+        <label>Number of fractional bits in a halfword</label>
+        <tip>Specifies the number of least-significant bits that will be used to
+        represent the fractional part of a 16-bit fixed-point number.</tip>
+    </widget>
+    '>
+
+    <!ENTITY MULFXP_BYTE_FRACTION_BITS '
+    <widget id="MULFXP_BYTE_FRACTION_BITS">
+        <key>MULFXP_BYTE_FRACTION_BITS</key>
+        <label>Number of fractional bits in a byte</label>
+        <tip>Specifies the number of least-significant bits that will be used to
+        represent the fractional part of an 8-bit fixed-point number.</tip>
+    </widget>
+    '>
+
+    <!ENTITY MULFXP_WORD_FORMAT '
+    <widget id="MULFXP_WORD_FORMAT">
+        <key>MULFXP_WORD_FORMAT</key>
+        <label>32-bit fixed-point format</label>
+        <tip>32-bit fixed-point format in Q notation, where the first number
+        specifies the number of integer bits and the second number
+        specifies the number of fractional bits.</tip>
+    </widget>
+    '>
+
+    <!ENTITY MULFXP_HALF_FORMAT '
+    <widget id=" MULFXP_HALF_FORMAT">
+        <key>MULFXP_HALF_FORMAT</key>
+        <label>16-bit fixed-point format</label>
+        <tip>16-bit fixed-point format in Q notation, where the first number
+        specifies the number of integer bits and the second number
+        specifies the number of fractional bits.</tip>
+    </widget>
+    '>
+
+    <!ENTITY MULFXP_BYTE_FORMAT '
+    <widget id="MULFXP_BYTE_FORMAT">
+        <key>MULFXP_BYTE_FORMAT</key>
+        <label>8-bit fixed-point format</label>
+        <tip>8-bit fixed-point format in Q notation, where the first number
+        specifies the number of integer bits and the second number
+        specifies the number of fractional bits.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VECTOR_CUSTOM_INSTRUCTIONS '
+    <widget id="VECTOR_CUSTOM_INSTRUCTIONS">
+        <key>VECTOR_CUSTOM_INSTRUCTIONS</key>
+        <label>Vector Custom Instructions</label>
+        <tip>Number of Vector Custom Instructions (VCIs) attached.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_0_LANES '
+    <widget id="VCI_0_LANES">
+        <key>VCI_0_LANES</key>
+        <label>Number of Lanes for VCI Port 0</label>
+        <tip>The number of lanes sent to custom instruction port 0.
+        Must be no larger than the number of vector lanes.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_0_OPCODE_START '
+    <widget id="VCI_0_OPCODE_START">
+        <key>VCI_0_OPCODE_START</key>
+        <label>Starting Opcode for VCI Port 0</label>
+        <tip>The VCUSTOM opcode for the first function of VCI Port 0.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_0_FUNCTIONS '
+    <widget id="VCI_0_FUNCTIONS">
+        <key>VCI_0_FUNCTIONS</key>
+        <label>Number of Functions for VCI Port 0</label>
+        <tip>The number of functions (opcodes) for VCI port 0.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_0_MODIFIES_DEST_ADDR '
+    <widget id="VCI_0_MODIFIES_DEST_ADDR">
+        <key>VCI_0_MODIFIES_DEST_ADDR</key>
+        <label>VCI Port 0 modifies the destination address</label>
+        <tip>Set to 1 if VCI Port 0 modifies the destination address.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_1_LANES '
+    <widget id="VCI_1_LANES">
+        <key>VCI_1_LANES</key>
+        <label>Number of Lanes for VCI Port 1</label>
+        <tip>The number of lanes sent to custom instruction port 1.
+        Must be no larger than the number of vector lanes.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_1_OPCODE_START '
+    <widget id="VCI_1_OPCODE_START">
+        <key>VCI_1_OPCODE_START</key>
+        <label>Starting Opcode for VCI Port 1</label>
+        <tip>The VCUSTOM opcode for the first function of VCI Port 1.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_1_FUNCTIONS '
+    <widget id="VCI_1_FUNCTIONS">
+        <key>VCI_1_FUNCTIONS</key>
+        <label>Number of Functions for VCI Port 1</label>
+        <tip>The number of functions (opcodes) for VCI port 1.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_1_MODIFIES_DEST_ADDR '
+    <widget id="VCI_1_MODIFIES_DEST_ADDR">
+        <key>VCI_1_MODIFIES_DEST_ADDR</key>
+        <label>VCI Port 1 modifies the destination address</label>
+        <tip>Set to 1 if VCI Port 1 modifies the destination address.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_2_LANES '
+    <widget id="VCI_2_LANES">
+        <key>VCI_2_LANES</key>
+        <label>Number of Lanes for VCI Port 2</label>
+        <tip>The number of lanes sent to custom instruction port 2.
+        Must be no larger than the number of vector lanes.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_2_OPCODE_START '
+    <widget id="VCI_2_OPCODE_START">
+        <key>VCI_2_OPCODE_START</key>
+        <label>Starting Opcode for VCI Port 2</label>
+        <tip>The VCUSTOM opcode for the first function of VCI Port 2.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_2_FUNCTIONS '
+    <widget id="VCI_2_FUNCTIONS">
+        <key>VCI_2_FUNCTIONS</key>
+        <label>Number of Functions for VCI Port 2</label>
+        <tip>The number of functions (opcodes) for VCI port 2.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_2_MODIFIES_DEST_ADDR '
+    <widget id="VCI_2_MODIFIES_DEST_ADDR">
+        <key>VCI_2_MODIFIES_DEST_ADDR</key>
+        <label>VCI Port 2 modifies the destination address</label>
+        <tip>Set to 1 if VCI Port 2 modifies the destination address.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_3_LANES '
+    <widget id="VCI_3_LANES">
+        <key>VCI_3_LANES</key>
+        <label>Number of Lanes for VCI Port 3</label>
+        <tip>The number of lanes sent to custom instruction port 3.
+        Must be no larger than the number of vector lanes.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_3_OPCODE_START '
+    <widget id="VCI_3_OPCODE_START">
+        <key>VCI_3_OPCODE_START</key>
+        <label>Starting Opcode for VCI Port 3</label>
+        <tip>The VCUSTOM opcode for the first function of VCI Port 3.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_3_FUNCTIONS '
+    <widget id="VCI_3_FUNCTIONS">
+        <key>VCI_3_FUNCTIONS</key>
+        <label>Number of Functions for VCI Port 3</label>
+        <tip>The number of functions (opcodes) for VCI port 3.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_3_MODIFIES_DEST_ADDR '
+    <widget id="VCI_3_MODIFIES_DEST_ADDR">
+        <key>VCI_3_MODIFIES_DEST_ADDR</key>
+        <label>VCI Port 3 modifies the destination address</label>
+        <tip>Set to 1 if VCI Port 3 modifies the destination address.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_4_LANES '
+    <widget id="VCI_4_LANES">
+        <key>VCI_4_LANES</key>
+        <label>Number of Lanes for VCI Port 4</label>
+        <tip>The number of lanes sent to custom instruction port 4.
+        Must be no larger than the number of vector lanes.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_4_OPCODE_START '
+    <widget id="VCI_4_OPCODE_START">
+        <key>VCI_4_OPCODE_START</key>
+        <label>Starting Opcode for VCI Port 4</label>
+        <tip>The VCUSTOM opcode for the first function of VCI Port 4.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_4_FUNCTIONS '
+    <widget id="VCI_4_FUNCTIONS">
+        <key>VCI_4_FUNCTIONS</key>
+        <label>Number of Functions for VCI Port 4</label>
+        <tip>The number of functions (opcodes) for VCI port 4.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_4_MODIFIES_DEST_ADDR '
+    <widget id="VCI_4_MODIFIES_DEST_ADDR">
+        <key>VCI_4_MODIFIES_DEST_ADDR</key>
+        <label>VCI Port 4 modifies the destination address</label>
+        <tip>Set to 1 if VCI Port 4 modifies the destination address.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_5_LANES '
+    <widget id="VCI_5_LANES">
+        <key>VCI_5_LANES</key>
+        <label>Number of Lanes for VCI Port 5</label>
+        <tip>The number of lanes sent to custom instruction port 5.
+        Must be no larger than the number of vector lanes.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_5_OPCODE_START '
+    <widget id="VCI_5_OPCODE_START">
+        <key>VCI_5_OPCODE_START</key>
+        <label>Starting Opcode for VCI Port 5</label>
+        <tip>The VCUSTOM opcode for the first function of VCI Port 5.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_5_FUNCTIONS '
+    <widget id="VCI_5_FUNCTIONS">
+        <key>VCI_5_FUNCTIONS</key>
+        <label>Number of Functions for VCI Port 5</label>
+        <tip>The number of functions (opcodes) for VCI port 5.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_5_MODIFIES_DEST_ADDR '
+    <widget id="VCI_5_MODIFIES_DEST_ADDR">
+        <key>VCI_5_MODIFIES_DEST_ADDR</key>
+        <label>VCI Port 5 modifies the destination address</label>
+        <tip>Set to 1 if VCI Port 5 modifies the destination address.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_6_LANES '
+    <widget id="VCI_6_LANES">
+        <key>VCI_6_LANES</key>
+        <label>Number of Lanes for VCI Port 6</label>
+        <tip>The number of lanes sent to custom instruction port 6.
+        Must be no larger than the number of vector lanes.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_6_OPCODE_START '
+    <widget id="VCI_6_OPCODE_START">
+        <key>VCI_6_OPCODE_START</key>
+        <label>Starting Opcode for VCI Port 6</label>
+        <tip>The VCUSTOM opcode for the first function of VCI Port 6.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_6_FUNCTIONS '
+    <widget id="VCI_6_FUNCTIONS">
+        <key>VCI_6_FUNCTIONS</key>
+        <label>Number of Functions for VCI Port 6</label>
+        <tip>The number of functions (opcodes) for VCI port 6.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_6_MODIFIES_DEST_ADDR '
+    <widget id="VCI_6_MODIFIES_DEST_ADDR">
+        <key>VCI_6_MODIFIES_DEST_ADDR</key>
+        <label>VCI Port 6 modifies the destination address</label>
+        <tip>Set to 1 if VCI Port 6 modifies the destination address.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_7_LANES '
+    <widget id="VCI_7_LANES">
+        <key>VCI_7_LANES</key>
+        <label>Number of Lanes for VCI Port 7</label>
+        <tip>The number of lanes sent to custom instruction port 7.
+        Must be no larger than the number of vector lanes.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_7_OPCODE_START '
+    <widget id="VCI_7_OPCODE_START">
+        <key>VCI_7_OPCODE_START</key>
+        <label>Starting Opcode for VCI Port 7</label>
+        <tip>The VCUSTOM opcode for the first function of VCI Port 7.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_7_FUNCTIONS '
+    <widget id="VCI_7_FUNCTIONS">
+        <key>VCI_7_FUNCTIONS</key>
+        <label>Number of Functions for VCI Port 7</label>
+        <tip>The number of functions (opcodes) for VCI port 7.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_7_MODIFIES_DEST_ADDR '
+    <widget id="VCI_7_MODIFIES_DEST_ADDR">
+        <key>VCI_7_MODIFIES_DEST_ADDR</key>
+        <label>VCI Port 7 modifies the destination address</label>
+        <tip>Set to 1 if VCI Port 7 modifies the destination address.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_8_LANES '
+    <widget id="VCI_8_LANES">
+        <key>VCI_8_LANES</key>
+        <label>Number of Lanes for VCI Port 8</label>
+        <tip>The number of lanes sent to custom instruction port 8.
+        Must be no larger than the number of vector lanes.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_8_OPCODE_START '
+    <widget id="VCI_8_OPCODE_START">
+        <key>VCI_8_OPCODE_START</key>
+        <label>Starting Opcode for VCI Port 8</label>
+        <tip>The VCUSTOM opcode for the first function of VCI Port 8.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_8_FUNCTIONS '
+    <widget id="VCI_8_FUNCTIONS">
+        <key>VCI_8_FUNCTIONS</key>
+        <label>Number of Functions for VCI Port 8</label>
+        <tip>The number of functions (opcodes) for VCI port 8.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_8_MODIFIES_DEST_ADDR '
+    <widget id="VCI_8_MODIFIES_DEST_ADDR">
+        <key>VCI_8_MODIFIES_DEST_ADDR</key>
+        <label>VCI Port 8 modifies the destination address</label>
+        <tip>Set to 1 if VCI Port 8 modifies the destination address.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_9_LANES '
+    <widget id="VCI_9_LANES">
+        <key>VCI_9_LANES</key>
+        <label>Number of Lanes for VCI Port 9</label>
+        <tip>The number of lanes sent to custom instruction port 9.
+        Must be no larger than the number of vector lanes.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_9_OPCODE_START '
+    <widget id="VCI_9_OPCODE_START">
+        <key>VCI_9_OPCODE_START</key>
+        <label>Starting Opcode for VCI Port 9</label>
+        <tip>The VCUSTOM opcode for the first function of VCI Port 9.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_9_FUNCTIONS '
+    <widget id="VCI_9_FUNCTIONS">
+        <key>VCI_9_FUNCTIONS</key>
+        <label>Number of Functions for VCI Port 9</label>
+        <tip>The number of functions (opcodes) for VCI port 9.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_9_MODIFIES_DEST_ADDR '
+    <widget id="VCI_9_MODIFIES_DEST_ADDR">
+        <key>VCI_9_MODIFIES_DEST_ADDR</key>
+        <label>VCI Port 9 modifies the destination address</label>
+        <tip>Set to 1 if VCI Port 9 modifies the destination address.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_10_LANES '
+    <widget id="VCI_10_LANES">
+        <key>VCI_10_LANES</key>
+        <label>Number of Lanes for VCI Port 10</label>
+        <tip>The number of lanes sent to custom instruction port 10.
+        Must be no larger than the number of vector lanes.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_10_OPCODE_START '
+    <widget id="VCI_10_OPCODE_START">
+        <key>VCI_10_OPCODE_START</key>
+        <label>Starting Opcode for VCI Port 10</label>
+        <tip>The VCUSTOM opcode for the first function of VCI Port 10.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_10_FUNCTIONS '
+    <widget id="VCI_10_FUNCTIONS">
+        <key>VCI_10_FUNCTIONS</key>
+        <label>Number of Functions for VCI Port 10</label>
+        <tip>The number of functions (opcodes) for VCI port 10.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_10_MODIFIES_DEST_ADDR '
+    <widget id="VCI_10_MODIFIES_DEST_ADDR">
+        <key>VCI_10_MODIFIES_DEST_ADDR</key>
+        <label>VCI Port 10 modifies the destination address</label>
+        <tip>Set to 1 if VCI Port 10 modifies the destination address.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_11_LANES '
+    <widget id="VCI_11_LANES">
+        <key>VCI_11_LANES</key>
+        <label>Number of Lanes for VCI Port 11</label>
+        <tip>The number of lanes sent to custom instruction port 11.
+        Must be no larger than the number of vector lanes.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_11_OPCODE_START '
+    <widget id="VCI_11_OPCODE_START">
+        <key>VCI_11_OPCODE_START</key>
+        <label>Starting Opcode for VCI Port 11</label>
+        <tip>The VCUSTOM opcode for the first function of VCI Port 11.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_11_FUNCTIONS '
+    <widget id="VCI_11_FUNCTIONS">
+        <key>VCI_11_FUNCTIONS</key>
+        <label>Number of Functions for VCI Port 11</label>
+        <tip>The number of functions (opcodes) for VCI port 11.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_11_MODIFIES_DEST_ADDR '
+    <widget id="VCI_11_MODIFIES_DEST_ADDR">
+        <key>VCI_11_MODIFIES_DEST_ADDR</key>
+        <label>VCI Port 11 modifies the destination address</label>
+        <tip>Set to 1 if VCI Port 11 modifies the destination address.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_12_LANES '
+    <widget id="VCI_12_LANES">
+        <key>VCI_12_LANES</key>
+        <label>Number of Lanes for VCI Port 12</label>
+        <tip>The number of lanes sent to custom instruction port 12.
+        Must be no larger than the number of vector lanes.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_12_OPCODE_START '
+    <widget id="VCI_12_OPCODE_START">
+        <key>VCI_12_OPCODE_START</key>
+        <label>Starting Opcode for VCI Port 12</label>
+        <tip>The VCUSTOM opcode for the first function of VCI Port 12.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_12_FUNCTIONS '
+    <widget id="VCI_12_FUNCTIONS">
+        <key>VCI_12_FUNCTIONS</key>
+        <label>Number of Functions for VCI Port 12</label>
+        <tip>The number of functions (opcodes) for VCI port 12.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_12_MODIFIES_DEST_ADDR '
+    <widget id="VCI_12_MODIFIES_DEST_ADDR">
+        <key>VCI_12_MODIFIES_DEST_ADDR</key>
+        <label>VCI Port 12 modifies the destination address</label>
+        <tip>Set to 1 if VCI Port 12 modifies the destination address.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_13_LANES '
+    <widget id="VCI_13_LANES">
+        <key>VCI_13_LANES</key>
+        <label>Number of Lanes for VCI Port 13</label>
+        <tip>The number of lanes sent to custom instruction port 13.
+        Must be no larger than the number of vector lanes.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_13_OPCODE_START '
+    <widget id="VCI_13_OPCODE_START">
+        <key>VCI_13_OPCODE_START</key>
+        <label>Starting Opcode for VCI Port 13</label>
+        <tip>The VCUSTOM opcode for the first function of VCI Port 13.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_13_FUNCTIONS '
+    <widget id="VCI_13_FUNCTIONS">
+        <key>VCI_13_FUNCTIONS</key>
+        <label>Number of Functions for VCI Port 13</label>
+        <tip>The number of functions (opcodes) for VCI port 13.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_13_MODIFIES_DEST_ADDR '
+    <widget id="VCI_13_MODIFIES_DEST_ADDR">
+        <key>VCI_13_MODIFIES_DEST_ADDR</key>
+        <label>VCI Port 13 modifies the destination address</label>
+        <tip>Set to 1 if VCI Port 13 modifies the destination address.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_14_LANES '
+    <widget id="VCI_14_LANES">
+        <key>VCI_14_LANES</key>
+        <label>Number of Lanes for VCI Port 14</label>
+        <tip>The number of lanes sent to custom instruction port 14.
+        Must be no larger than the number of vector lanes.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_14_OPCODE_START '
+    <widget id="VCI_14_OPCODE_START">
+        <key>VCI_14_OPCODE_START</key>
+        <label>Starting Opcode for VCI Port 14</label>
+        <tip>The VCUSTOM opcode for the first function of VCI Port 14.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_14_FUNCTIONS '
+    <widget id="VCI_14_FUNCTIONS">
+        <key>VCI_14_FUNCTIONS</key>
+        <label>Number of Functions for VCI Port 14</label>
+        <tip>The number of functions (opcodes) for VCI port 14.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_14_MODIFIES_DEST_ADDR '
+    <widget id="VCI_14_MODIFIES_DEST_ADDR">
+        <key>VCI_14_MODIFIES_DEST_ADDR</key>
+        <label>VCI Port 14 modifies the destination address</label>
+        <tip>Set to 1 if VCI Port 14 modifies the destination address.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_15_LANES '
+    <widget id="VCI_15_LANES">
+        <key>VCI_15_LANES</key>
+        <label>Number of Lanes for VCI Port 15</label>
+        <tip>The number of lanes sent to custom instruction port 15.
+        Must be no larger than the number of vector lanes.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_15_OPCODE_START '
+    <widget id="VCI_15_OPCODE_START">
+        <key>VCI_15_OPCODE_START</key>
+        <label>Starting Opcode for VCI Port 15</label>
+        <tip>The VCUSTOM opcode for the first function of VCI Port 15.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_15_FUNCTIONS '
+    <widget id="VCI_15_FUNCTIONS">
+        <key>VCI_15_FUNCTIONS</key>
+        <label>Number of Functions for VCI Port 15</label>
+        <tip>The number of functions (opcodes) for VCI port 15.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCI_15_MODIFIES_DEST_ADDR '
+    <widget id="VCI_15_MODIFIES_DEST_ADDR">
+        <key>VCI_15_MODIFIES_DEST_ADDR</key>
+        <label>VCI Port 15 modifies the destination address</label>
+        <tip>Set to 1 if VCI Port 15 modifies the destination address.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCUSTOM0_DEPTH '
+    <widget id="VCUSTOM0_DEPTH">
+        <key>VCUSTOM0_DEPTH</key>
+        <label>VCUSTOM0 Depth</label>
+        <tip>Depth (Pipeline Stages) of VCI function mapped to opcode 0.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCUSTOM1_DEPTH '
+    <widget id="VCUSTOM1_DEPTH">
+        <key>VCUSTOM1_DEPTH</key>
+        <label>VCUSTOM1 Depth</label>
+        <tip>Depth (Pipeline Stages) of VCI function mapped to opcode 1.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCUSTOM2_DEPTH '
+    <widget id="VCUSTOM2_DEPTH">
+        <key>VCUSTOM2_DEPTH</key>
+        <label>VCUSTOM2 Depth</label>
+        <tip>Depth (Pipeline Stages) of VCI function mapped to opcode 2.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCUSTOM3_DEPTH '
+    <widget id="VCUSTOM3_DEPTH">
+        <key>VCUSTOM3_DEPTH</key>
+        <label>VCUSTOM3 Depth</label>
+        <tip>Depth (Pipeline Stages) of VCI function mapped to opcode 3.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCUSTOM4_DEPTH '
+    <widget id="VCUSTOM4_DEPTH">
+        <key>VCUSTOM4_DEPTH</key>
+        <label>VCUSTOM4 Depth</label>
+        <tip>Depth (Pipeline Stages) of VCI function mapped to opcode 4.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCUSTOM5_DEPTH '
+    <widget id="VCUSTOM5_DEPTH">
+        <key>VCUSTOM5_DEPTH</key>
+        <label>VCUSTOM5 Depth</label>
+        <tip>Depth (Pipeline Stages) of VCI function mapped to opcode 5.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCUSTOM6_DEPTH '
+    <widget id="VCUSTOM6_DEPTH">
+        <key>VCUSTOM6_DEPTH</key>
+        <label>VCUSTOM6 Depth</label>
+        <tip>Depth (Pipeline Stages) of VCI function mapped to opcode 6.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCUSTOM7_DEPTH '
+    <widget id="VCUSTOM7_DEPTH">
+        <key>VCUSTOM7_DEPTH</key>
+        <label>VCUSTOM7 Depth</label>
+        <tip>Depth (Pipeline Stages) of VCI function mapped to opcode 7.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCUSTOM8_DEPTH '
+    <widget id="VCUSTOM8_DEPTH">
+        <key>VCUSTOM8_DEPTH</key>
+        <label>VCUSTOM8 Depth</label>
+        <tip>Depth (Pipeline Stages) of VCI function mapped to opcode 8.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCUSTOM9_DEPTH '
+    <widget id="VCUSTOM9_DEPTH">
+        <key>VCUSTOM9_DEPTH</key>
+        <label>VCUSTOM9 Depth</label>
+        <tip>Depth (Pipeline Stages) of VCI function mapped to opcode 9.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCUSTOM10_DEPTH '
+    <widget id="VCUSTOM10_DEPTH">
+        <key>VCUSTOM10_DEPTH</key>
+        <label>VCUSTOM10 Depth</label>
+        <tip>Depth (Pipeline Stages) of VCI function mapped to opcode 10.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCUSTOM11_DEPTH '
+    <widget id="VCUSTOM11_DEPTH">
+        <key>VCUSTOM11_DEPTH</key>
+        <label>VCUSTOM11 Depth</label>
+        <tip>Depth (Pipeline Stages) of VCI function mapped to opcode 11.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCUSTOM12_DEPTH '
+    <widget id="VCUSTOM12_DEPTH">
+        <key>VCUSTOM12_DEPTH</key>
+        <label>VCUSTOM12 Depth</label>
+        <tip>Depth (Pipeline Stages) of VCI function mapped to opcode 12.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCUSTOM13_DEPTH '
+    <widget id="VCUSTOM13_DEPTH">
+        <key>VCUSTOM13_DEPTH</key>
+        <label>VCUSTOM13 Depth</label>
+        <tip>Depth (Pipeline Stages) of VCI function mapped to opcode 13.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCUSTOM14_DEPTH '
+    <widget id="VCUSTOM14_DEPTH">
+        <key>VCUSTOM14_DEPTH</key>
+        <label>VCUSTOM14 Depth</label>
+        <tip>Depth (Pipeline Stages) of VCI function mapped to opcode 14.</tip>
+    </widget>
+    '>
+
+    <!ENTITY VCUSTOM15_DEPTH '
+    <widget id="VCUSTOM15_DEPTH">
+        <key>VCUSTOM15_DEPTH</key>
+        <label>VCUSTOM15 Depth</label>
+        <tip>Depth (Pipeline Stages) of VCI function mapped to opcode 15.</tip>
+    </widget>
+    '>
+
+    <!ENTITY C_INSTR_PORT_TYPE '
+    <widget id="C_INSTR_PORT_TYPE">
+        <key>C_INSTR_PORT_TYPE</key>
+        <label>Instruction Port Type</label>
+        <tip>Type of bus interface to use for the MXP intruction port.</tip>
+    </widget>
+    '>
+
+    <!ENTITY C_M_AXI_ADDR_WIDTH '
+    <widget id="C_M_AXI_ADDR_WIDTH">
+        <key>C_M_AXI_ADDR_WIDTH</key>
+        <label>AXI Master Address Width</label>
+        <tip></tip>
+    </widget>
+    '>
+
+    <!ENTITY C_M_AXI_DATA_WIDTH '
+    <widget id="C_M_AXI_DATA_WIDTH">
+        <key>C_M_AXI_DATA_WIDTH</key>
+        <label>AXI Master Data Width in Bits</label>
+        <tip>The data bus width in bits of the AXI master interface,
+        as determined by the number of memory lanes.</tip>
+    </widget>
+    '>
+
+    <!ENTITY C_M_AXI_PROTOCOL '
+    <widget id="C_M_AXI_PROTOCOL">
+        <key>C_M_AXI_PROTOCOL</key>
+        <label>AXI Master Protocol</label>
+        <tip>Select between AXI3 and AXI4 as the DMA master interface
+        protocol. This only affects the maximum burst length allowed
+        (16 beats for AXI3, 256 beats for AXI4). If the DMA master is
+        connected to an AXI3 slave (such as a Zynq PS S_AXI_HP port),
+        selecting AXI3 as the AXI master protocol will prevent an
+        an AXI4-to-AXI3 protocol converter (burst splitter) from being
+        automatically inserted in the AXI interconnect.</tip>
+    </widget>
+    '>
+
+    <!ENTITY C_M_AXI_LEN_WIDTH '
+    <widget id="C_M_AXI_LEN_WIDTH">
+        <key>C_M_AXI_LEN_WIDTH</key>
+        <label>AXI Master arlen/awlen Width in Bits</label>
+        <tip>Width of arlen and awlen ports on DMA master interface.
+        Should be 4 for an AXI3 interface or 8 for AXI4 interface.</tip>
+    </widget>
+    '>
+
+    <!ENTITY C_M_AXI_SUPPORTS_NARROW_BURST '
+    <widget id="C_M_AXI_SUPPORTS_NARROW_BURST">
+        <key>C_M_AXI_SUPPORTS_NARROW_BURST</key>
+        <label>AXI Master can generate Narrow Bursts</label>
+        <tip></tip>
+    </widget>
+    '>
+
+    <!ENTITY C_M_AXI_SUPPORTS_READ '
+    <widget id="C_M_AXI_SUPPORTS_READ">
+        <key>C_M_AXI_SUPPORTS_READ</key>
+        <label>AXI Master uses AR and R Channels</label>
+        <tip></tip>
+    </widget>
+    '>
+
+    <!ENTITY C_M_AXI_SUPPORTS_WRITE '
+    <widget id="C_M_AXI_SUPPORTS_WRITE">
+        <key>C_M_AXI_SUPPORTS_WRITE</key>
+        <label>AXI Master uses AW, W, and B Channels</label>
+        <tip></tip>
+    </widget>
+    '>
+
+    <!ENTITY C_M_AXI_SUPPORTS_THREADS '
+    <widget id="C_M_AXI_SUPPORTS_THREADS">
+        <key>C_M_AXI_SUPPORTS_THREADS</key>
+        <label>AXI Master uses Threads</label>
+        <tip></tip>
+    </widget>
+    '>
+
+    <!ENTITY C_INTERCONNECT_M_AXI_READ_ISSUING '
+    <widget id="C_INTERCONNECT_M_AXI_READ_ISSUING">
+        <key>C_INTERCONNECT_M_AXI_READ_ISSUING</key>
+        <label>AXI Master Maximum Outstanding Read Transactions</label>
+        <tip></tip>
+    </widget>
+    '>
+
+    <!ENTITY C_INTERCONNECT_M_AXI_WRITE_ISSUING '
+    <widget id="C_INTERCONNECT_M_AXI_WRITE_ISSUING">
+        <key>C_INTERCONNECT_M_AXI_WRITE_ISSUING</key>
+        <label>AXI Master Maximum Outstanding Write Transactions</label>
+        <tip></tip>
+    </widget>
+    '>
+
+    <!ENTITY C_S_AXI_ADDR_WIDTH '
+    <widget id="C_S_AXI_ADDR_WIDTH">
+        <key>C_S_AXI_ADDR_WIDTH</key>
+        <label>AXI Slave Address Width</label>
+        <tip></tip>
+    </widget>
+    '>
+
+    <!ENTITY C_S_AXI_DATA_WIDTH '
+    <widget id="C_S_AXI_DATA_WIDTH">
+        <key>C_S_AXI_DATA_WIDTH</key>
+        <label>AXI Slave Data Width</label>
+        <tip></tip>
+    </widget>
+    '>
+
+    <!ENTITY C_S_AXI_PROTOCOL '
+    <widget id="C_S_AXI_PROTOCOL">
+        <key>C_S_AXI_PROTOCOL</key>
+        <label>AXI Slave Protocol</label>
+        <tip></tip>
+    </widget>
+    '>
+
+    <!ENTITY C_S_AXI_SUPPORTS_READ '
+    <widget id="C_S_AXI_SUPPORTS_READ">
+        <key>C_S_AXI_SUPPORTS_READ</key>
+        <label>AXI Slave supports AR and R Channels</label>
+        <tip></tip>
+    </widget>
+    '>
+
+    <!ENTITY C_S_AXI_SUPPORTS_WRITE '
+    <widget id="C_S_AXI_SUPPORTS_WRITE">
+        <key>C_S_AXI_SUPPORTS_WRITE</key>
+        <label>AXI Slave supports AW, W, and B Channels</label>
+        <tip></tip>
+    </widget>
+    '>
+
+    <!ENTITY C_S_AXI_BASEADDR '
+    <widget id="C_S_AXI_BASEADDR">
+        <key>C_S_AXI_BASEADDR</key>
+        <label>AXI Slave Base Address</label>
+        <tip></tip>
+    </widget>
+    '>
+
+    <!ENTITY C_S_AXI_HIGHADDR '
+    <widget id="C_S_AXI_HIGHADDR">
+        <key>C_S_AXI_HIGHADDR</key>
+        <label>AXI Slave High Address</label>
+        <tip></tip>
+    </widget>
+    '>
+
+    <!ENTITY C_S_AXI_INSTR_ADDR_WIDTH '
+    <widget id="C_S_AXI_INSTR_ADDR_WIDTH">
+        <key>C_S_AXI_INSTR_ADDR_WIDTH</key>
+        <label>AXI Instruction Port Slave Address Width</label>
+        <tip></tip>
+    </widget>
+    '>
+
+    <!ENTITY C_S_AXI_INSTR_DATA_WIDTH '
+    <widget id="C_S_AXI_INSTR_DATA_WIDTH">
+        <key>C_S_AXI_INSTR_DATA_WIDTH</key>
+        <label>AXI Instruction Port Slave Data Width</label>
+        <tip></tip>
+    </widget>
+    '>
+
+    <!ENTITY C_S_AXI_INSTR_ID_WIDTH '
+    <widget id="C_S_AXI_INSTR_ID_WIDTH">
+        <key>C_S_AXI_INSTR_ID_WIDTH</key>
+        <label>AXI Instruction Port Slave ID Width</label>
+        <tip></tip>
+    </widget>
+    '>
+
+    <!ENTITY C_S_AXI_INSTR_PROTOCOL '
+    <widget id="C_S_AXI_INSTR_PROTOCOL">
+        <key>C_S_AXI_INSTR_PROTOCOL</key>
+        <label>AXI Instruction Port Slave Protocol</label>
+        <tip></tip>
+    </widget>
+    '>
+
+    <!ENTITY C_S_AXI_INSTR_SUPPORTS_READ '
+    <widget id="C_S_AXI_INSTR_SUPPORTS_READ">
+        <key>C_S_AXI_INSTR_SUPPORTS_READ</key>
+        <label>AXI Instruction Port Slave supports AR and R Channels</label>
+        <tip></tip>
+    </widget>
+    '>
+
+    <!ENTITY C_S_AXI_INSTR_SUPPORTS_WRITE '
+    <widget id="C_S_AXI_INSTR_SUPPORTS_WRITE">
+        <key>C_S_AXI_INSTR_SUPPORTS_WRITE</key>
+        <label>AXI Instruction Port Slave supports AW, W, and B Channels</label>
+        <tip></tip>
+    </widget>
+    '>
+
+    <!ENTITY C_S_AXI_INSTR_BASEADDR '
+    <widget id="C_S_AXI_INSTR_BASEADDR">
+        <key>C_S_AXI_INSTR_BASEADDR</key>
+        <label>AXI Instruction Port Slave Base Address</label>
+        <tip></tip>
+    </widget>
+    '>
+
+    <!ENTITY C_S_AXI_INSTR_HIGHADDR '
+    <widget id="C_S_AXI_INSTR_HIGHADDR">
+        <key>C_S_AXI_INSTR_HIGHADDR</key>
+        <label>AXI Instruction Port Slave High Address</label>
+        <tip></tip>
+    </widget>
+    '>
+
+]>
+<doc>
+    <view id="User">
+        <display>User</display>
+        <group id="Parameters">
+            <display>Base Parameters</display>
+            <item>&VECTOR_LANES;</item>
+            <item>&MEMORY_WIDTH_LANES;</item>
+            <item>&C_M_AXI_DATA_WIDTH;</item>
+            <item>&BEATS_PER_BURST;</item>
+            <item>&BURSTLENGTH_BYTES;</item>
+            <item>&MAX_MASKED_WAVES;</item>
+            <item>&MASK_PARTITIONS;</item>
+            <item>&VECTOR_CUSTOM_INSTRUCTIONS;</item>
+            <item>&SCRATCHPAD_KB;</item>
+            <item>&MIN_MULTIPLIER_HW;</item>
+            <item>&C_M_AXI_PROTOCOL;</item>
+            <item>&C_INSTR_PORT_TYPE;</item>
+        </group>
+        <group id="MULFXP_Format">
+            <display>Fixed-Point Multiply Format</display>
+            <item>&MULFXP_WORD_FRACTION_BITS;</item>
+            <item>&MULFXP_HALF_FRACTION_BITS;</item>
+            <item>&MULFXP_BYTE_FRACTION_BITS;</item>
+            <item>&MULFXP_WORD_FORMAT;</item>
+            <item>&MULFXP_HALF_FORMAT;</item>
+            <item>&MULFXP_BYTE_FORMAT;</item>
+        </group>
+        <group id="VCI_Ports">
+            <display>Custom Instruction Ports</display>
+            <item>&VCI_0_LANES;</item>
+            <item>&VCI_0_OPCODE_START;</item>
+            <item>&VCI_0_FUNCTIONS;</item>
+            <item>&VCI_0_MODIFIES_DEST_ADDR;</item>
+            <item>&VCI_1_LANES;</item>
+            <item>&VCI_1_OPCODE_START;</item>
+            <item>&VCI_1_FUNCTIONS;</item>
+            <item>&VCI_1_MODIFIES_DEST_ADDR;</item>
+            <item>&VCI_2_LANES;</item>
+            <item>&VCI_2_OPCODE_START;</item>
+            <item>&VCI_2_FUNCTIONS;</item>
+            <item>&VCI_2_MODIFIES_DEST_ADDR;</item>
+            <item>&VCI_3_LANES;</item>
+            <item>&VCI_3_OPCODE_START;</item>
+            <item>&VCI_3_FUNCTIONS;</item>
+            <item>&VCI_3_MODIFIES_DEST_ADDR;</item>
+            <item>&VCI_4_LANES;</item>
+            <item>&VCI_4_OPCODE_START;</item>
+            <item>&VCI_4_FUNCTIONS;</item>
+            <item>&VCI_4_MODIFIES_DEST_ADDR;</item>
+            <item>&VCI_5_LANES;</item>
+            <item>&VCI_5_OPCODE_START;</item>
+            <item>&VCI_5_FUNCTIONS;</item>
+            <item>&VCI_5_MODIFIES_DEST_ADDR;</item>
+            <item>&VCI_6_LANES;</item>
+            <item>&VCI_6_OPCODE_START;</item>
+            <item>&VCI_6_FUNCTIONS;</item>
+            <item>&VCI_6_MODIFIES_DEST_ADDR;</item>
+            <item>&VCI_7_LANES;</item>
+            <item>&VCI_7_OPCODE_START;</item>
+            <item>&VCI_7_FUNCTIONS;</item>
+            <item>&VCI_7_MODIFIES_DEST_ADDR;</item>
+            <item>&VCI_8_LANES;</item>
+            <item>&VCI_8_OPCODE_START;</item>
+            <item>&VCI_8_FUNCTIONS;</item>
+            <item>&VCI_8_MODIFIES_DEST_ADDR;</item>
+            <item>&VCI_9_LANES;</item>
+            <item>&VCI_9_OPCODE_START;</item>
+            <item>&VCI_9_FUNCTIONS;</item>
+            <item>&VCI_9_MODIFIES_DEST_ADDR;</item>
+            <item>&VCI_10_LANES;</item>
+            <item>&VCI_10_OPCODE_START;</item>
+            <item>&VCI_10_FUNCTIONS;</item>
+            <item>&VCI_10_MODIFIES_DEST_ADDR;</item>
+            <item>&VCI_11_LANES;</item>
+            <item>&VCI_11_OPCODE_START;</item>
+            <item>&VCI_11_FUNCTIONS;</item>
+            <item>&VCI_11_MODIFIES_DEST_ADDR;</item>
+            <item>&VCI_12_LANES;</item>
+            <item>&VCI_12_OPCODE_START;</item>
+            <item>&VCI_12_FUNCTIONS;</item>
+            <item>&VCI_12_MODIFIES_DEST_ADDR;</item>
+            <item>&VCI_13_LANES;</item>
+            <item>&VCI_13_OPCODE_START;</item>
+            <item>&VCI_13_FUNCTIONS;</item>
+            <item>&VCI_13_MODIFIES_DEST_ADDR;</item>
+            <item>&VCI_14_LANES;</item>
+            <item>&VCI_14_OPCODE_START;</item>
+            <item>&VCI_14_FUNCTIONS;</item>
+            <item>&VCI_14_MODIFIES_DEST_ADDR;</item>
+            <item>&VCI_15_LANES;</item>
+            <item>&VCI_15_OPCODE_START;</item>
+            <item>&VCI_15_FUNCTIONS;</item>
+            <item>&VCI_15_MODIFIES_DEST_ADDR;</item>
+        </group>
+        <group id="VCUSTOM_Opcodes">
+            <display>VCUSTOM Opcode Depths</display>
+            <item>&VCUSTOM0_DEPTH;</item>
+            <item>&VCUSTOM1_DEPTH;</item>
+            <item>&VCUSTOM2_DEPTH;</item>
+            <item>&VCUSTOM3_DEPTH;</item>
+            <item>&VCUSTOM4_DEPTH;</item>
+            <item>&VCUSTOM5_DEPTH;</item>
+            <item>&VCUSTOM6_DEPTH;</item>
+            <item>&VCUSTOM7_DEPTH;</item>
+            <item>&VCUSTOM8_DEPTH;</item>
+            <item>&VCUSTOM9_DEPTH;</item>
+            <item>&VCUSTOM10_DEPTH;</item>
+            <item>&VCUSTOM11_DEPTH;</item>
+            <item>&VCUSTOM12_DEPTH;</item>
+            <item>&VCUSTOM13_DEPTH;</item>
+            <item>&VCUSTOM14_DEPTH;</item>
+            <item>&VCUSTOM15_DEPTH;</item>
+        </group>
+
+    </view>
+    <view id="System">
+        <display>System</display>
+        <group id="axi_master">
+            <display>AXI Master</display>
+            <item>&C_M_AXI_ADDR_WIDTH;</item>
+            <item>&C_M_AXI_DATA_WIDTH;</item>
+            <item>&C_M_AXI_LEN_WIDTH;</item>
+            <item>&C_M_AXI_SUPPORTS_NARROW_BURST;</item>
+            <item>&C_M_AXI_SUPPORTS_READ;</item>
+            <item>&C_M_AXI_SUPPORTS_WRITE;</item>
+            <item>&C_M_AXI_SUPPORTS_THREADS;</item>
+            <item>&C_INTERCONNECT_M_AXI_READ_ISSUING;</item>
+            <item>&C_INTERCONNECT_M_AXI_WRITE_ISSUING;</item>
+        </group>
+        <group id="axi_slave">
+            <display>AXI Slave</display>
+            <item>&C_S_AXI_PROTOCOL;</item>
+            <item>&C_S_AXI_ADDR_WIDTH;</item>
+            <item>&C_S_AXI_DATA_WIDTH;</item>
+            <item>&C_S_AXI_SUPPORTS_READ;</item>
+            <item>&C_S_AXI_SUPPORTS_WRITE;</item>
+            <item>&C_S_AXI_BASEADDR;</item>
+            <item>&C_S_AXI_HIGHADDR;</item>
+        </group>
+        <group id="axi_instr_port_slave">
+            <display>AXI Instruction Port Slave</display>
+            <item>&C_S_AXI_INSTR_PROTOCOL;</item>
+            <item>&C_S_AXI_INSTR_ADDR_WIDTH;</item>
+            <item>&C_S_AXI_INSTR_DATA_WIDTH;</item>
+            <item>&C_S_AXI_INSTR_ID_WIDTH;</item>
+            <item>&C_S_AXI_INSTR_SUPPORTS_READ;</item>
+            <item>&C_S_AXI_INSTR_SUPPORTS_WRITE;</item>
+            <item>&C_S_AXI_INSTR_BASEADDR;</item>
+            <item>&C_S_AXI_INSTR_HIGHADDR;</item>
+        </group>
+    </view>
+
+</doc>
+

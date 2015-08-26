@@ -1,0 +1,469 @@
+-- vectorblox_mxp_pkg.vhd
+-- Copyright (C) 2012-2015 VectorBlox Computing, Inc.
+
+-- synthesis library vbx_lib
+library IEEE;
+use IEEE.std_logic_1164.all;
+use IEEE.numeric_std.all;
+
+package vectorblox_mxp_pkg is
+
+  component vectorblox_mxp is
+    port(
+      -- Nios Custom Instruction Interface (Conduit)--
+      ci_clk    : in std_logic := '0';
+      ci_clk_en : in std_logic := '0';
+      ci_reset  : in std_logic := '0';
+
+      ci_start : in  std_logic := '0';
+      ci_done  : out std_logic := '0';
+
+      ci_dataa   : in  std_logic_vector(31 downto 0) := (others => '0');
+      ci_datab   : in  std_logic_vector(31 downto 0) := (others => '0');
+      ci_writerc : in  std_logic;
+      ci_result  : out std_logic_vector(31 downto 0) := (others => '0');
+
+      -- Nios Custom Instruction Interface (slave port)--
+      ncs_clk    : in std_logic := '0';
+      ncs_clk_en : in std_logic := '0';
+      ncs_reset  : in std_logic := '0';
+
+      ncs_start : in  std_logic := '0';
+      ncs_done  : out std_logic := '0';
+
+      ncs_dataa   : in  std_logic_vector(31 downto 0) := (others => '0');
+      ncs_datab   : in  std_logic_vector(31 downto 0) := (others => '0');
+      ncs_writerc : in  std_logic;
+      ncs_result  : out std_logic_vector(31 downto 0) := (others => '0');
+
+      -- AXI4 Slave Instruction Port
+      axs_awaddr  : in  std_logic_vector(INSTR_ADDR_WIDTH-1 downto 0)                        := (others => '0');
+      axs_awvalid : in  std_logic                                             := '0';
+      axs_awready : out std_logic                                             := '0';
+      axs_awid    : in  std_logic_vector(ID_WIDTH-1 downto 0)                 := (others => '0');
+      axs_awlen   : in  std_logic_vector(3 downto 0)                          := (others => '0');
+      axs_awsize  : in  std_logic_vector(2 downto 0)                          := (others => '0');
+      axs_awburst : in  std_logic_vector(1 downto 0)                          := (others => '0');
+      axs_awlock  : in  std_logic_vector(1 downto 0)                          := (others => '0');
+      axs_awcache : in  std_logic_vector(3 downto 0)                          := (others => '0');
+      axs_awprot  : in  std_logic_vector(2 downto 0)                          := (others => '0');
+
+      axs_wdata  : in  std_logic_vector(32-1 downto 0)                        := (others => '0');
+      axs_wstrb  : in  std_logic_vector((32/8)-1 downto 0)                    := (others => '0');
+      axs_wvalid : in  std_logic                                              := '0';
+      axs_wlast  : in  std_logic                                              := '0';
+      axs_wready : out std_logic                                              := '0';
+      axs_wid    : in std_logic_vector(ID_WIDTH-1 downto 0)                         := (others => '0');
+
+      axs_bready : in  std_logic                                              := '0';
+      axs_bresp  : out std_logic_vector(1 downto 0)                           := (others => '0');
+      axs_bvalid : out std_logic                                              := '0';
+      axs_bid    : out std_logic_vector(ID_WIDTH-1 downto 0)                        := (others => '0');
+
+      axs_araddr  : in  std_logic_vector(INSTR_ADDR_WIDTH-1 downto 0)                        := (others => '0');
+      axs_arvalid : in  std_logic                                             := '0';
+      axs_arready : out std_logic                                             := '0';
+      axs_arid    : in  std_logic_vector(ID_WIDTH-1 downto 0)                       := (others => '0');
+      axs_arlen   : in  std_logic_vector(3 downto 0)                          := (others => '0');
+      axs_arsize  : in  std_logic_vector(2 downto 0)                          := (others => '0');
+      axs_arburst : in  std_logic_vector(1 downto 0)                          := (others => '0');
+      axs_arlock  : in  std_logic_vector(1 downto 0)                          := (others => '0');
+      axs_arcache : in  std_logic_vector(3 downto 0)                          := (others => '0');
+      axs_arprot  : in  std_logic_vector(2 downto 0)                          := (others => '0');
+
+
+      axs_rready : in  std_logic                                              := '0';
+      axs_rdata  : out std_logic_vector(32-1 downto 0)                        := (others => '0');
+      axs_rresp  : out std_logic_vector(1 downto 0)                           := (others => '0');
+      axs_rvalid : out std_logic                                              := '0';
+      axs_rlast  : out std_logic                                              := '0';
+      axs_rid    : out std_logic_vector(ID_WIDTH-1 downto 0)                         := (others => '0');
+
+      -- Core Clocks --
+      core_clk    : in std_logic;
+      core_reset  : in std_logic;
+      core_clk_2x : in std_logic;
+
+      -- Avalon Master --
+      master_address       : out std_logic_vector(31 downto 0);
+      master_read          : out std_logic;
+      master_write         : out std_logic;
+      master_waitrequest   : in  std_logic;
+      master_readdatavalid : in  std_logic;
+
+      master_burstcount : out std_logic_vector(BURSTCOUNT_WIDTH-1 downto 0);
+
+      master_writedata  : out std_logic_vector(MEMORY_BUS_WIDTH-1 downto 0);
+      master_byteenable : out std_logic_vector(MEMORY_WIDTH_LANES*4-1 downto 0);
+      master_readdata   : in  std_logic_vector(MEMORY_BUS_WIDTH-1 downto 0);
+
+      -- Avalon Slave --
+      slave_address       : in  std_logic_vector(SLAVE_ADDR_WIDTH-1 downto 0);
+      slave_read          : in  std_logic;
+      slave_write         : in  std_logic;
+      slave_waitrequest   : out std_logic;
+      slave_readdatavalid : out std_logic;
+
+      slave_writedata  : in  std_logic_vector(31 downto 0);
+      slave_byteenable : in  std_logic_vector(3 downto 0);
+      slave_readdata   : out std_logic_vector(31 downto 0);
+
+      -- Vector Custom Instructions --
+      vci_0_clk   : out std_logic;
+      vci_0_reset : out std_logic;
+
+      vci_0_valid  : out std_logic_vector(VCI_0_FUNCTIONS-1 downto 0);
+      vci_0_signed : out std_logic;
+      vci_0_opsize : out std_logic_vector(1 downto 0);
+
+      vci_0_vector_start : out std_logic;
+      vci_0_vector_end   : out std_logic;
+      vci_0_byte_valid   : out std_logic_vector(VCI_0_BYTES-1 downto 0);
+      vci_0_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_0_data_a : out std_logic_vector(VCI_0_BITS-1 downto 0);
+      vci_0_flag_a : out std_logic_vector(VCI_0_BYTES-1 downto 0);
+      vci_0_data_b : out std_logic_vector(VCI_0_BITS-1 downto 0);
+      vci_0_flag_b : out std_logic_vector(VCI_0_BYTES-1 downto 0);
+
+      vci_0_data_out      : in std_logic_vector(VCI_0_BITS-1 downto 0);
+      vci_0_flag_out      : in std_logic_vector(VCI_0_BYTES-1 downto 0);
+      vci_0_byteenable    : in std_logic_vector(VCI_0_BYTES-1 downto 0);
+      vci_0_dest_addr_out : in std_logic_vector(31 downto 0);
+
+      vci_1_clk   : out std_logic;
+      vci_1_reset : out std_logic;
+
+      vci_1_valid  : out std_logic_vector(VCI_1_FUNCTIONS-1 downto 0);
+      vci_1_signed : out std_logic;
+      vci_1_opsize : out std_logic_vector(1 downto 0);
+
+      vci_1_vector_start : out std_logic;
+      vci_1_vector_end   : out std_logic;
+      vci_1_byte_valid   : out std_logic_vector(VCI_1_BYTES-1 downto 0);
+      vci_1_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_1_data_a : out std_logic_vector(VCI_1_BITS-1 downto 0);
+      vci_1_flag_a : out std_logic_vector(VCI_1_BYTES-1 downto 0);
+      vci_1_data_b : out std_logic_vector(VCI_1_BITS-1 downto 0);
+      vci_1_flag_b : out std_logic_vector(VCI_1_BYTES-1 downto 0);
+
+      vci_1_data_out      : in std_logic_vector(VCI_1_BITS-1 downto 0);
+      vci_1_flag_out      : in std_logic_vector(VCI_1_BYTES-1 downto 0);
+      vci_1_byteenable    : in std_logic_vector(VCI_1_BYTES-1 downto 0);
+      vci_1_dest_addr_out : in std_logic_vector(31 downto 0);
+
+      vci_2_clk   : out std_logic;
+      vci_2_reset : out std_logic;
+
+      vci_2_valid  : out std_logic_vector(VCI_2_FUNCTIONS-1 downto 0);
+      vci_2_signed : out std_logic;
+      vci_2_opsize : out std_logic_vector(1 downto 0);
+
+      vci_2_vector_start : out std_logic;
+      vci_2_vector_end   : out std_logic;
+      vci_2_byte_valid   : out std_logic_vector(VCI_2_BYTES-1 downto 0);
+      vci_2_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_2_data_a : out std_logic_vector(VCI_2_BITS-1 downto 0);
+      vci_2_flag_a : out std_logic_vector(VCI_2_BYTES-1 downto 0);
+      vci_2_data_b : out std_logic_vector(VCI_2_BITS-1 downto 0);
+      vci_2_flag_b : out std_logic_vector(VCI_2_BYTES-1 downto 0);
+
+      vci_2_data_out      : in std_logic_vector(VCI_2_BITS-1 downto 0);
+      vci_2_flag_out      : in std_logic_vector(VCI_2_BYTES-1 downto 0);
+      vci_2_byteenable    : in std_logic_vector(VCI_2_BYTES-1 downto 0);
+      vci_2_dest_addr_out : in std_logic_vector(31 downto 0);
+
+      vci_3_clk   : out std_logic;
+      vci_3_reset : out std_logic;
+
+      vci_3_valid  : out std_logic_vector(VCI_3_FUNCTIONS-1 downto 0);
+      vci_3_signed : out std_logic;
+      vci_3_opsize : out std_logic_vector(1 downto 0);
+
+      vci_3_vector_start : out std_logic;
+      vci_3_vector_end   : out std_logic;
+      vci_3_byte_valid   : out std_logic_vector(VCI_3_BYTES-1 downto 0);
+      vci_3_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_3_data_a : out std_logic_vector(VCI_3_BITS-1 downto 0);
+      vci_3_flag_a : out std_logic_vector(VCI_3_BYTES-1 downto 0);
+      vci_3_data_b : out std_logic_vector(VCI_3_BITS-1 downto 0);
+      vci_3_flag_b : out std_logic_vector(VCI_3_BYTES-1 downto 0);
+
+      vci_3_data_out      : in std_logic_vector(VCI_3_BITS-1 downto 0);
+      vci_3_flag_out      : in std_logic_vector(VCI_3_BYTES-1 downto 0);
+      vci_3_byteenable    : in std_logic_vector(VCI_3_BYTES-1 downto 0);
+      vci_3_dest_addr_out : in std_logic_vector(31 downto 0);
+
+      vci_4_clk   : out std_logic;
+      vci_4_reset : out std_logic;
+
+      vci_4_valid  : out std_logic_vector(VCI_4_FUNCTIONS-1 downto 0);
+      vci_4_signed : out std_logic;
+      vci_4_opsize : out std_logic_vector(1 downto 0);
+
+      vci_4_vector_start : out std_logic;
+      vci_4_vector_end   : out std_logic;
+      vci_4_byte_valid   : out std_logic_vector(VCI_4_BYTES-1 downto 0);
+      vci_4_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_4_data_a : out std_logic_vector(VCI_4_BITS-1 downto 0);
+      vci_4_flag_a : out std_logic_vector(VCI_4_BYTES-1 downto 0);
+      vci_4_data_b : out std_logic_vector(VCI_4_BITS-1 downto 0);
+      vci_4_flag_b : out std_logic_vector(VCI_4_BYTES-1 downto 0);
+
+      vci_4_data_out      : in std_logic_vector(VCI_4_BITS-1 downto 0);
+      vci_4_flag_out      : in std_logic_vector(VCI_4_BYTES-1 downto 0);
+      vci_4_byteenable    : in std_logic_vector(VCI_4_BYTES-1 downto 0);
+      vci_4_dest_addr_out : in std_logic_vector(31 downto 0);
+
+      vci_5_clk   : out std_logic;
+      vci_5_reset : out std_logic;
+
+      vci_5_valid  : out std_logic_vector(VCI_5_FUNCTIONS-1 downto 0);
+      vci_5_signed : out std_logic;
+      vci_5_opsize : out std_logic_vector(1 downto 0);
+
+      vci_5_vector_start : out std_logic;
+      vci_5_vector_end   : out std_logic;
+      vci_5_byte_valid   : out std_logic_vector(VCI_5_BYTES-1 downto 0);
+      vci_5_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_5_data_a : out std_logic_vector(VCI_5_BITS-1 downto 0);
+      vci_5_flag_a : out std_logic_vector(VCI_5_BYTES-1 downto 0);
+      vci_5_data_b : out std_logic_vector(VCI_5_BITS-1 downto 0);
+      vci_5_flag_b : out std_logic_vector(VCI_5_BYTES-1 downto 0);
+
+      vci_5_data_out      : in std_logic_vector(VCI_5_BITS-1 downto 0);
+      vci_5_flag_out      : in std_logic_vector(VCI_5_BYTES-1 downto 0);
+      vci_5_byteenable    : in std_logic_vector(VCI_5_BYTES-1 downto 0);
+      vci_5_dest_addr_out : in std_logic_vector(31 downto 0);
+
+      vci_6_clk   : out std_logic;
+      vci_6_reset : out std_logic;
+
+      vci_6_valid  : out std_logic_vector(VCI_6_FUNCTIONS-1 downto 0);
+      vci_6_signed : out std_logic;
+      vci_6_opsize : out std_logic_vector(1 downto 0);
+
+      vci_6_vector_start : out std_logic;
+      vci_6_vector_end   : out std_logic;
+      vci_6_byte_valid   : out std_logic_vector(VCI_6_BYTES-1 downto 0);
+      vci_6_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_6_data_a : out std_logic_vector(VCI_6_BITS-1 downto 0);
+      vci_6_flag_a : out std_logic_vector(VCI_6_BYTES-1 downto 0);
+      vci_6_data_b : out std_logic_vector(VCI_6_BITS-1 downto 0);
+      vci_6_flag_b : out std_logic_vector(VCI_6_BYTES-1 downto 0);
+
+      vci_6_data_out      : in std_logic_vector(VCI_6_BITS-1 downto 0);
+      vci_6_flag_out      : in std_logic_vector(VCI_6_BYTES-1 downto 0);
+      vci_6_byteenable    : in std_logic_vector(VCI_6_BYTES-1 downto 0);
+      vci_6_dest_addr_out : in std_logic_vector(31 downto 0);
+
+      vci_7_clk   : out std_logic;
+      vci_7_reset : out std_logic;
+
+      vci_7_valid  : out std_logic_vector(VCI_7_FUNCTIONS-1 downto 0);
+      vci_7_signed : out std_logic;
+      vci_7_opsize : out std_logic_vector(1 downto 0);
+
+      vci_7_vector_start : out std_logic;
+      vci_7_vector_end   : out std_logic;
+      vci_7_byte_valid   : out std_logic_vector(VCI_7_BYTES-1 downto 0);
+      vci_7_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_7_data_a : out std_logic_vector(VCI_7_BITS-1 downto 0);
+      vci_7_flag_a : out std_logic_vector(VCI_7_BYTES-1 downto 0);
+      vci_7_data_b : out std_logic_vector(VCI_7_BITS-1 downto 0);
+      vci_7_flag_b : out std_logic_vector(VCI_7_BYTES-1 downto 0);
+
+      vci_7_data_out      : in std_logic_vector(VCI_7_BITS-1 downto 0);
+      vci_7_flag_out      : in std_logic_vector(VCI_7_BYTES-1 downto 0);
+      vci_7_byteenable    : in std_logic_vector(VCI_7_BYTES-1 downto 0);
+      vci_7_dest_addr_out : in std_logic_vector(31 downto 0);
+
+      vci_8_clk   : out std_logic;
+      vci_8_reset : out std_logic;
+
+      vci_8_valid  : out std_logic_vector(VCI_8_FUNCTIONS-1 downto 0);
+      vci_8_signed : out std_logic;
+      vci_8_opsize : out std_logic_vector(1 downto 0);
+
+      vci_8_vector_start : out std_logic;
+      vci_8_vector_end   : out std_logic;
+      vci_8_byte_valid   : out std_logic_vector(VCI_8_BYTES-1 downto 0);
+      vci_8_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_8_data_a : out std_logic_vector(VCI_8_BITS-1 downto 0);
+      vci_8_flag_a : out std_logic_vector(VCI_8_BYTES-1 downto 0);
+      vci_8_data_b : out std_logic_vector(VCI_8_BITS-1 downto 0);
+      vci_8_flag_b : out std_logic_vector(VCI_8_BYTES-1 downto 0);
+
+      vci_8_data_out      : in std_logic_vector(VCI_8_BITS-1 downto 0);
+      vci_8_flag_out      : in std_logic_vector(VCI_8_BYTES-1 downto 0);
+      vci_8_byteenable    : in std_logic_vector(VCI_8_BYTES-1 downto 0);
+      vci_8_dest_addr_out : in std_logic_vector(31 downto 0);
+
+      vci_9_clk   : out std_logic;
+      vci_9_reset : out std_logic;
+
+      vci_9_valid  : out std_logic_vector(VCI_9_FUNCTIONS-1 downto 0);
+      vci_9_signed : out std_logic;
+      vci_9_opsize : out std_logic_vector(1 downto 0);
+
+      vci_9_vector_start : out std_logic;
+      vci_9_vector_end   : out std_logic;
+      vci_9_byte_valid   : out std_logic_vector(VCI_9_BYTES-1 downto 0);
+      vci_9_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_9_data_a : out std_logic_vector(VCI_9_BITS-1 downto 0);
+      vci_9_flag_a : out std_logic_vector(VCI_9_BYTES-1 downto 0);
+      vci_9_data_b : out std_logic_vector(VCI_9_BITS-1 downto 0);
+      vci_9_flag_b : out std_logic_vector(VCI_9_BYTES-1 downto 0);
+
+      vci_9_data_out      : in std_logic_vector(VCI_9_BITS-1 downto 0);
+      vci_9_flag_out      : in std_logic_vector(VCI_9_BYTES-1 downto 0);
+      vci_9_byteenable    : in std_logic_vector(VCI_9_BYTES-1 downto 0);
+      vci_9_dest_addr_out : in std_logic_vector(31 downto 0);
+
+      vci_10_clk   : out std_logic;
+      vci_10_reset : out std_logic;
+
+      vci_10_valid  : out std_logic_vector(VCI_10_FUNCTIONS-1 downto 0);
+      vci_10_signed : out std_logic;
+      vci_10_opsize : out std_logic_vector(1 downto 0);
+
+      vci_10_vector_start : out std_logic;
+      vci_10_vector_end   : out std_logic;
+      vci_10_byte_valid   : out std_logic_vector(VCI_10_BYTES-1 downto 0);
+      vci_10_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_10_data_a : out std_logic_vector(VCI_10_BITS-1 downto 0);
+      vci_10_flag_a : out std_logic_vector(VCI_10_BYTES-1 downto 0);
+      vci_10_data_b : out std_logic_vector(VCI_10_BITS-1 downto 0);
+      vci_10_flag_b : out std_logic_vector(VCI_10_BYTES-1 downto 0);
+
+      vci_10_data_out      : in std_logic_vector(VCI_10_BITS-1 downto 0);
+      vci_10_flag_out      : in std_logic_vector(VCI_10_BYTES-1 downto 0);
+      vci_10_byteenable    : in std_logic_vector(VCI_10_BYTES-1 downto 0);
+      vci_10_dest_addr_out : in std_logic_vector(31 downto 0);
+
+      vci_11_clk   : out std_logic;
+      vci_11_reset : out std_logic;
+
+      vci_11_valid  : out std_logic_vector(VCI_11_FUNCTIONS-1 downto 0);
+      vci_11_signed : out std_logic;
+      vci_11_opsize : out std_logic_vector(1 downto 0);
+
+      vci_11_vector_start : out std_logic;
+      vci_11_vector_end   : out std_logic;
+      vci_11_byte_valid   : out std_logic_vector(VCI_11_BYTES-1 downto 0);
+      vci_11_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_11_data_a : out std_logic_vector(VCI_11_BITS-1 downto 0);
+      vci_11_flag_a : out std_logic_vector(VCI_11_BYTES-1 downto 0);
+      vci_11_data_b : out std_logic_vector(VCI_11_BITS-1 downto 0);
+      vci_11_flag_b : out std_logic_vector(VCI_11_BYTES-1 downto 0);
+
+      vci_11_data_out      : in std_logic_vector(VCI_11_BITS-1 downto 0);
+      vci_11_flag_out      : in std_logic_vector(VCI_11_BYTES-1 downto 0);
+      vci_11_byteenable    : in std_logic_vector(VCI_11_BYTES-1 downto 0);
+      vci_11_dest_addr_out : in std_logic_vector(31 downto 0);
+
+      vci_12_clk   : out std_logic;
+      vci_12_reset : out std_logic;
+
+      vci_12_valid  : out std_logic_vector(VCI_12_FUNCTIONS-1 downto 0);
+      vci_12_signed : out std_logic;
+      vci_12_opsize : out std_logic_vector(1 downto 0);
+
+      vci_12_vector_start : out std_logic;
+      vci_12_vector_end   : out std_logic;
+      vci_12_byte_valid   : out std_logic_vector(VCI_12_BYTES-1 downto 0);
+      vci_12_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_12_data_a : out std_logic_vector(VCI_12_BITS-1 downto 0);
+      vci_12_flag_a : out std_logic_vector(VCI_12_BYTES-1 downto 0);
+      vci_12_data_b : out std_logic_vector(VCI_12_BITS-1 downto 0);
+      vci_12_flag_b : out std_logic_vector(VCI_12_BYTES-1 downto 0);
+
+      vci_12_data_out      : in std_logic_vector(VCI_12_BITS-1 downto 0);
+      vci_12_flag_out      : in std_logic_vector(VCI_12_BYTES-1 downto 0);
+      vci_12_byteenable    : in std_logic_vector(VCI_12_BYTES-1 downto 0);
+      vci_12_dest_addr_out : in std_logic_vector(31 downto 0);
+
+      vci_13_clk   : out std_logic;
+      vci_13_reset : out std_logic;
+
+      vci_13_valid  : out std_logic_vector(VCI_13_FUNCTIONS-1 downto 0);
+      vci_13_signed : out std_logic;
+      vci_13_opsize : out std_logic_vector(1 downto 0);
+
+      vci_13_vector_start : out std_logic;
+      vci_13_vector_end   : out std_logic;
+      vci_13_byte_valid   : out std_logic_vector(VCI_13_BYTES-1 downto 0);
+      vci_13_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_13_data_a : out std_logic_vector(VCI_13_BITS-1 downto 0);
+      vci_13_flag_a : out std_logic_vector(VCI_13_BYTES-1 downto 0);
+      vci_13_data_b : out std_logic_vector(VCI_13_BITS-1 downto 0);
+      vci_13_flag_b : out std_logic_vector(VCI_13_BYTES-1 downto 0);
+
+      vci_13_data_out      : in std_logic_vector(VCI_13_BITS-1 downto 0);
+      vci_13_flag_out      : in std_logic_vector(VCI_13_BYTES-1 downto 0);
+      vci_13_byteenable    : in std_logic_vector(VCI_13_BYTES-1 downto 0);
+      vci_13_dest_addr_out : in std_logic_vector(31 downto 0);
+
+      vci_14_clk   : out std_logic;
+      vci_14_reset : out std_logic;
+
+      vci_14_valid  : out std_logic_vector(VCI_14_FUNCTIONS-1 downto 0);
+      vci_14_signed : out std_logic;
+      vci_14_opsize : out std_logic_vector(1 downto 0);
+
+      vci_14_vector_start : out std_logic;
+      vci_14_vector_end   : out std_logic;
+      vci_14_byte_valid   : out std_logic_vector(VCI_14_BYTES-1 downto 0);
+      vci_14_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_14_data_a : out std_logic_vector(VCI_14_BITS-1 downto 0);
+      vci_14_flag_a : out std_logic_vector(VCI_14_BYTES-1 downto 0);
+      vci_14_data_b : out std_logic_vector(VCI_14_BITS-1 downto 0);
+      vci_14_flag_b : out std_logic_vector(VCI_14_BYTES-1 downto 0);
+
+      vci_14_data_out      : in std_logic_vector(VCI_14_BITS-1 downto 0);
+      vci_14_flag_out      : in std_logic_vector(VCI_14_BYTES-1 downto 0);
+      vci_14_byteenable    : in std_logic_vector(VCI_14_BYTES-1 downto 0);
+      vci_14_dest_addr_out : in std_logic_vector(31 downto 0);
+
+      vci_15_clk   : out std_logic;
+      vci_15_reset : out std_logic;
+
+      vci_15_valid  : out std_logic_vector(VCI_15_FUNCTIONS-1 downto 0);
+      vci_15_signed : out std_logic;
+      vci_15_opsize : out std_logic_vector(1 downto 0);
+
+      vci_15_vector_start : out std_logic;
+      vci_15_vector_end   : out std_logic;
+      vci_15_byte_valid   : out std_logic_vector(VCI_15_BYTES-1 downto 0);
+      vci_15_dest_addr_in : out std_logic_vector(31 downto 0);
+
+      vci_15_data_a : out std_logic_vector(VCI_15_BITS-1 downto 0);
+      vci_15_flag_a : out std_logic_vector(VCI_15_BYTES-1 downto 0);
+      vci_15_data_b : out std_logic_vector(VCI_15_BITS-1 downto 0);
+      vci_15_flag_b : out std_logic_vector(VCI_15_BYTES-1 downto 0);
+
+      vci_15_data_out      : in std_logic_vector(VCI_15_BITS-1 downto 0);
+      vci_15_flag_out      : in std_logic_vector(VCI_15_BYTES-1 downto 0);
+      vci_15_byteenable    : in std_logic_vector(VCI_15_BYTES-1 downto 0);
+      vci_15_dest_addr_out : in std_logic_vector(31 downto 0)
+      );
+  end component vectorblox_mxp;
+
+end package;
+
+package body vectorblox_mxp_pkg is
+end vectorblox_mxp_pkg;
