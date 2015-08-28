@@ -49,14 +49,13 @@ p {
 <div id="header">
 <h1 class="title">VectorBlox MXP Quickstart for MXP Simulator</h1>
 </div>
-<p>If you do not have a MXP license, or are only intererested in software development, skip over the hardware specific sections.</p>
 <h1 id="quickstart_install"><span class="header-section-number">1</span> Installation</h1>
 <p>This guide describes installing VectorBlox MXP Simulation Library to run on an x86_64 host compiling with GCC</p>
 <h2 id="installation_prerequisites"><span class="header-section-number">1.1</span> Prerequisites</h2>
 <p>Before you begin, make sure you have:</p>
 <ul>
 <li><p>GCC installed. Your native compiler should work on any linux workstation. On Windows you want to install <a href="http://mingw-w64.org/doku.php/download/mingw-builds">mingw-w64</a> (Note that this is not to be confused with mingw from mingw.org, though you may want to download some utilities from that project such as GNU Make )</p></li>
-<li><p>(Windows Only) A unix-like environment we recommend msys from mingw. But make sure that the gcc command still points to the compiler described in the point above.</p></li>
+<li><p>(Windows Only) A unix-like environment we recommend msys from <a href="http://mingw.org/">mingw</a>. But make sure that the gcc command still points to the compiler described in the point above.</p></li>
 </ul>
 <h2 id="installation_installing"><span class="header-section-number">1.2</span> Installing</h2>
 <ul>
@@ -71,7 +70,6 @@ p {
 <ol style="list-style-type: decimal">
 <li><p><strong>Make the executable</strong></p>
 <p>Navigate to a test application such as <code>vbw_vec_add_t</code>, located in <code>EXAMPLES/software/bmark/vbw_vec_add_t</code>.</p>
-<p>To compile the program for the FPGA bitstream you previously selected, you need to pass the absolute path of the BSP to <code>make</code>. Assuming you have already saved this path in the <code>BSP_ROOT_DIR</code> shell variable as described earlier, you can run</p>
 <pre><code>make clean_all all SIMULATOR=true</code></pre>
 <p>This command builds the vbxapi and vbxsim libraries, the test.c, and then links them.</p>
 <p>Note that we used the <code>clean_all</code> target first to ensure that any libraries that might have been compiled for a different target in the past were cleaned and re-compiled. If you know that the libraries were already compiled for the correct target, you can omit the <code>clean_all</code> target.</p></li>
