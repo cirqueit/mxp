@@ -28,16 +28,17 @@ This release consists of:
 
 To get started Immediately:
 
-* Ensure you have on of the supported developement boards
-[Xilinx](http://vectorblox.github.io/test_xilinx/mxp_boards_xilinx.html)
-[Altera](http://vectorblox.github.io/test_altera/mxp_boards_altera.html)
+* Ensure you have on of the [supported developement boards
+](http://vectorblox.github.io/mxp//mxp_supported_boards.html)
+
 
 * Download this git repository
 
 * Follow the Quickstart Documentation
-  * [Quartus]()
-  * [ISE]()
-  * [Vivado]()
+  * [Quartus](http://vectorblox.github.io/mxp//mxp_quickstart_altera.html)
+  * [ISE](http://vectorblox.github.io/mxp//mxp_quickstart_ise.html)
+  * [Vivado](http://vectorblox.github.io/mxp//mxp_quickstart_vivado.html)
+  * [Simulator](http://vectorblox.github.io/mxp//mxp_quickstart_simulator.html)
 
 For further information please email us at
 [info@vectorblox.com](mailto:info@vectorblox.com) or visit
