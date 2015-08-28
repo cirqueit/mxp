@@ -1,4 +1,0 @@
-# Files in dependency order for Modelsim
-util_pkg.vhd
-sqrt_alt.vhd
-vci_sqrt.vhd

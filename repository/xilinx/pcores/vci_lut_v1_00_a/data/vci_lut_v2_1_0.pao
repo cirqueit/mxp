@@ -1,9 +1,0 @@
-###########################################################################
-#
-# Copyright (C) 2012-2015 VectorBlox Computing, Inc.
-#
-###########################################################################
-
-# lib proc_common_v3_00_a  all
-lib vci_lut_v1_00_a lut_pkg.vhd vhdl
-lib vci_lut_v1_00_a vci_lut.vhd vhdl

@@ -1,3 +1,0 @@
-CPU_FLAGS :=  
-PROCESSOR_TYPE := cortexa9
-PROCESSOR_INSTANCE := ps7_cortexa9_0
